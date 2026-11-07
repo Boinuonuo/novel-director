@@ -3,7 +3,15 @@ import { Loader, Text } from '@mantine/core'
 import { AutomationAdjacentAttr, TestId } from '@shared/automation/testids'
 import { BUILT_IN_BROWSER_MAX_TABS, type BuiltInBrowserTabs } from '@shared/built-in-browser'
 import type { SessionHeader } from '@shared/types'
-import { IconAdjustmentsHorizontal, IconHistory, IconPlus, type IconProps, IconWorld, IconX } from '@tabler/icons-react'
+import {
+  IconAdjustmentsHorizontal,
+  IconBook2,
+  IconHistory,
+  IconPlus,
+  type IconProps,
+  IconWorld,
+  IconX,
+} from '@tabler/icons-react'
 import clsx from 'clsx'
 import {
   type ElementType,
@@ -19,6 +27,7 @@ import { rendererApplication } from '@/app/renderer-application'
 import { BuiltInBrowserView, useBuiltInBrowserTabs } from '@/components/chat/BuiltInBrowserPanel'
 import { ICON_SIZE, ICON_STROKE_WIDTH, IconButton } from '@/components/common/IconButton'
 import { ScalableIcon } from '@/components/common/ScalableIcon'
+import { NovelMemoryPanel } from '@/components/novel/NovelMemoryPanel'
 import { SettingsDensityProvider } from '@/components/settings/SettingsLayout'
 import { AppTooltip as Tooltip } from '@/components/ui/tooltip'
 import type { BuiltInBrowser } from '@/platform/interfaces'
@@ -285,7 +294,7 @@ function SessionPanelHost({
 }
 
 /** Panel tab keys: the pinned tools, then `web:<browser tab id>` for each page. */
-type PanelTabKey = 'settings' | 'threads' | `web:${string}`
+type PanelTabKey = 'settings' | 'threads' | 'novel' | `web:${string}`
 
 function OpenSessionPanel({
   session,
@@ -308,9 +317,11 @@ function OpenSessionPanel({
   const showThreads = mode === 'chat' || threadQuery.threads.length > 1
   const pages = builtInBrowser ? (browserTabs?.tabs ?? []) : []
 
+  const showNovel = session.settings?.novelMode === true
   const tabs: PanelTabKey[] = [
     'settings',
     ...(showThreads ? (['threads'] as const) : []),
+    ...(showNovel ? (['novel'] as const) : []),
     ...pages.map((page) => `web:${page.id}` as const),
   ]
   const requested: PanelTabKey = panel.tab === 'web' ? `web:${panel.webTab ?? ''}` : panel.tab
@@ -348,7 +359,7 @@ function OpenSessionPanel({
   }, [])
 
   const show = (key: PanelTabKey) => {
-    if (key === 'settings' || key === 'threads') showSessionPanelTab(session.id, key)
+    if (key === 'settings' || key === 'threads' || key === 'novel') showSessionPanelTab(session.id, key)
     else showSessionPanelTab(session.id, 'web', key.slice('web:'.length))
   }
 
@@ -412,6 +423,15 @@ function OpenSessionPanel({
             testId={TestId.sessionPanel.tabThreads}
           />
         )}
+        {showNovel && (
+          <PanelTab
+            pinned
+            icon={IconBook2}
+            label={t('Story memory')}
+            active={activeTab === 'novel'}
+            onSelect={() => showSessionPanelTab(session.id, 'novel')}
+          />
+        )}
         {pages.length > 0 && <span className="mx-0.5 h-4 w-px shrink-0 bg-chatbox-border-primary" aria-hidden />}
         <div
           ref={tabStripRef}
@@ -468,6 +488,8 @@ function OpenSessionPanel({
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3" role="tabpanel">
           {activeTab === 'threads' ? (
             <ThreadHistoryList session={session} />
+          ) : activeTab === 'novel' ? (
+            <NovelMemoryPanel session={session} />
           ) : (
             <SettingsDensityProvider density="compact">
               <SessionSettingsContent session={session} mode={mode} onEdit={onEdit} />

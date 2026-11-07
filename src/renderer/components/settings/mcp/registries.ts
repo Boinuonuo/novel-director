@@ -72,18 +72,6 @@ export const MCP_ENTRIES_OFFICIAL: MCPRegistryEntry[] = [
     },
   },
   {
-    name: 'context-7',
-    title: 'Context 7',
-    description:
-      'Context7 MCP pulls up-to-date, version-specific documentation and code examples straight from the source — and places them directly into your prompt.',
-    icon: getIcon('context-7.png'),
-    homepage: 'https://github.com/upstash/context7',
-    configuration: {
-      command: 'npx',
-      args: ['-y', '@upstash/context7-mcp@latest'],
-    },
-  },
-  {
     name: 'git',
     title: 'Git',
     description:

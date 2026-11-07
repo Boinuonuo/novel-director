@@ -1,12 +1,11 @@
 {
-  "name": "xyz.chatboxapp.ce",
-  "productName": "xyz.chatboxapp.ce",
-  "version": "1.24.0",
-  "description": "A desktop client for multiple cutting-edge AI models",
+  "name": "novel-director",
+  "productName": "Novel Director",
+  "version": "0.1.0",
+  "description": "A desktop client for writing long novels together with AI",
   "author": {
-    "name": "Mediocre Company",
-    "email": "hi@chatboxai.com",
-    "url": "https://github.com/chatboxai"
+    "name": "Boinuonuo",
+    "url": "https://github.com/Boinuonuo"
   },
   "main": "./dist/main/main.js",
   "scripts": {

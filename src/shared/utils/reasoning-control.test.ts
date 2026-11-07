@@ -34,6 +34,93 @@ describe('reasoning-control', () => {
     expect(getReasoningControlLevel(ModelProviderEnum.Claude, model('claude-sonnet-4-5'), options)).toBe('medium')
   })
 
+  it.each(['claude-sonnet-5', 'claude-sonnet-5-5', 'anthropic/claude-sonnet-5.5', 'claude-haiku-5-5'])(
+    'supports adaptive effort for %s on native and custom Anthropic routes',
+    (modelId) => {
+      const info = model(modelId, 'anthropic')
+      expect(isClaudeAdaptiveThinkingModel(modelId)).toBe(true)
+      for (const provider of [ModelProviderEnum.Claude, 'custom-anthropic']) {
+        expect(getReasoningControlCapabilities(provider, info)).toEqual({
+          supported: true,
+          kind: 'anthropic-adaptive-effort',
+        })
+        expect(getReasoningControlOptions(provider, info).map((option) => option.level)).toEqual([
+          'default',
+          'low',
+          'medium',
+          'high',
+        ])
+        for (const level of ['low', 'medium', 'high'] as const) {
+          const options = getReasoningProviderOptions(provider, info, level)
+          expect(options?.claude).toEqual({ effort: level })
+          expect(normalizeClaudeReasoningOptions(modelId, options?.claude)).toEqual({ effort: level })
+          expect(getReasoningControlLevel(provider, info, options)).toBe(level)
+        }
+        expect(getReasoningProviderOptions(provider, info, 'off')).toBeUndefined()
+      }
+    }
+  )
+
+  it.each(['muse-spark-1.3-contributor', 'meta/muse-spark-1.3', 'muse-spark-1.2'])(
+    'supports Muse Spark effort on custom OpenAI-compatible routes: %s',
+    (modelId) => {
+      const info = model(modelId, 'openai')
+      const provider = 'custom-meta'
+      expect(getReasoningControlCapabilities(provider, info)).toEqual({ supported: true, kind: 'openai-effort' })
+      expect(getReasoningControlOptions(provider, info).map((option) => option.level)).toEqual([
+        'default',
+        'low',
+        'medium',
+        'high',
+      ])
+      for (const level of ['low', 'medium', 'high'] as const) {
+        const options = getReasoningProviderOptions(provider, info, level)
+        expect(options?.openai).toEqual({ reasoningEffort: level })
+        expect(getReasoningControlLevel(provider, info, options)).toBe(level)
+      }
+      const staleOff = { openai: { reasoningEffort: 'none' as const } }
+      expect(getReasoningControlLevel(provider, info, staleOff)).toBe('default')
+      expect(getReasoningProviderOptions(provider, info, 'off', staleOff)).toBeUndefined()
+      expect(getReasoningProviderOptions(provider, info, 'default', staleOff)).toBeUndefined()
+    }
+  )
+
+  it('validates Muse Spark effort without confusing minimal with disabled thinking', () => {
+    expect(normalizeOpenAIReasoningOptions('muse-spark-1.3-contributor', { reasoningEffort: 'none' })).toBeUndefined()
+    expect(normalizeOpenAIReasoningOptions('muse-spark-1.3-contributor', { reasoningEffort: 'minimal' })).toEqual({
+      reasoningEffort: 'minimal',
+    })
+    expect(isOpenAIReasoningEffortSupported('muse-spark-1.3-contributor', 'max')).toBe(false)
+    expect(isOpenAIReasoningEffortSupported('muse-spark-1.3', 'max')).toBe(true)
+    expect(getReasoningControlCapabilities('custom-meta', model('muse-spark-1.3', 'anthropic')).disabledReason).toBe(
+      'requires-openai-api-style'
+    )
+    for (const modelId of ['muse-spark-open', 'muse-glimmer-30b', 'llama-3.3-70b']) {
+      expect(getReasoningControlCapabilities('custom-meta', model(modelId, 'openai')).supported).toBe(false)
+    }
+  })
+
+  it.each(['anthropic/claude-sonnet-5.5', 'meta/muse-spark-1.3-contributor'])(
+    'supports OpenRouter effort without an invalid disable option for %s',
+    (modelId) => {
+      const info = model(modelId)
+      expect(getReasoningControlCapabilities(ModelProviderEnum.OpenRouter, info)).toEqual({
+        supported: true,
+        kind: 'openrouter-reasoning',
+      })
+      expect(getReasoningControlOptions(ModelProviderEnum.OpenRouter, info).map((option) => option.level)).toEqual([
+        'default',
+        'low',
+        'medium',
+        'high',
+      ])
+      const options = getReasoningProviderOptions(ModelProviderEnum.OpenRouter, info, 'medium')
+      expect(options?.openrouter).toEqual({ reasoning: { effort: 'medium', exclude: false } })
+      expect(getReasoningControlLevel(ModelProviderEnum.OpenRouter, info, options)).toBe('medium')
+      expect(getReasoningProviderOptions(ModelProviderEnum.OpenRouter, info, 'off')).toBeUndefined()
+    }
+  )
+
   it('maps GPT reasoning models to reasoning effort', () => {
     const options = getReasoningProviderOptions(ModelProviderEnum.OpenAIResponses, model('gpt-5.1'), 'high')
 

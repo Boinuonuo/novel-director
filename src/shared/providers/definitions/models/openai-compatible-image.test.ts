@@ -235,8 +235,8 @@ describe('OpenAI-compatible image models', () => {
     expect(openRouterMocks.createOpenRouter).toHaveBeenCalledWith({
       apiKey: 'or-key',
       headers: {
-        'HTTP-Referer': 'https://chatboxai.app',
-        'X-Title': 'Chatbox AI',
+        'HTTP-Referer': 'https://github.com/Boinuonuo/novel-director',
+        'X-Title': 'Novel Director',
       },
       fetch: expect.any(Function),
     })

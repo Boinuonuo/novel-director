@@ -1,90 +1,42 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { SessionMetaStorage } from '@/storage/SessionMetaStorage'
-import { initData } from './init_data'
+import { removeUntouchedExampleSessions } from './init_data'
 
-const metaStorage = vi.hoisted(() => ({
-  getAllTotal: vi.fn(),
-  createMany: vi.fn(),
+const mocks = vi.hoisted(() => ({
+  getSessionContextSource: vi.fn(),
+  deleteSession: vi.fn(),
 }))
 
-const sessionRepositoryMock = vi.hoisted(() => ({
-  createSessionRows: vi.fn(),
+vi.mock('@/app/renderer-application', () => ({
+  rendererApplication: { sessions: { getSessionContextSource: mocks.getSessionContextSource } },
 }))
 
-vi.mock('@/adapters/CurrentSessionRepository', () => ({
-  CurrentSessionRepository: class {
-    createSessionRows = sessionRepositoryMock.createSessionRows
-  },
-}))
+vi.mock('@/stores/session/crud', () => ({ deleteSession: mocks.deleteSession }))
 
 vi.mock('@/packages/initial_data', () => ({
-  defaultSessionsForCN: [],
-  defaultSessionsForEN: [
-    {
-      id: 'default-session',
-      name: 'Default Session',
-      messages: [],
-      type: 'chat',
-    },
-  ],
+  defaultSessionsForCN: [{ id: 'cn', messages: [{ id: 'm1' }] }],
+  defaultSessionsForEN: [{ id: 'en', messages: [{ id: 'm1' }, { id: 'm2' }] }],
 }))
 
-vi.mock('@/platform', () => ({
-  default: {
-    getLocale: vi.fn(() => Promise.resolve('en')),
-  },
-}))
+describe('removeUntouchedExampleSessions', () => {
+  beforeEach(() => vi.clearAllMocks())
 
-vi.mock('@/stores/sessionHelpers', () => ({
-  getMetaStorage: vi.fn(() => Promise.resolve(metaStorage)),
-  getSessionMeta: (session: { id: string; name: string; type: 'chat' | 'picture' }) => ({
-    id: session.id,
-    name: session.name,
-    type: session.type,
-  }),
-}))
-
-describe('initData', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    metaStorage.createMany.mockResolvedValue(undefined)
-    sessionRepositoryMock.createSessionRows.mockResolvedValue(undefined)
-  })
-
-  it('uses all session meta records to decide whether default sessions are needed', async () => {
-    metaStorage.getAllTotal.mockResolvedValue(1)
-
-    await initData()
-
-    expect(metaStorage.getAllTotal).toHaveBeenCalledTimes(1)
-    expect(sessionRepositoryMock.createSessionRows).not.toHaveBeenCalled()
-    expect(metaStorage.createMany).not.toHaveBeenCalled()
-  })
-
-  it('creates default sessions when session meta storage is empty', async () => {
-    metaStorage.getAllTotal.mockResolvedValue(0)
-
-    await initData()
-
-    expect(sessionRepositoryMock.createSessionRows).toHaveBeenCalledWith(
-      {
-        id: 'default-session',
-        name: 'Default Session',
-        type: 'chat',
-      },
-      []
+  it('removes an example conversation left as it was seeded', async () => {
+    mocks.getSessionContextSource.mockImplementation(async ({ sessionId }) =>
+      sessionId === 'en' ? { pathMessageIds: ['m1', 'm2'] } : null
     )
-    expect(metaStorage.createMany).toHaveBeenCalled()
+    await removeUntouchedExampleSessions()
+    expect(mocks.deleteSession.mock.calls).toEqual([['en']])
   })
 
-  it('does not publish metadata when creating default rows fails', async () => {
-    metaStorage.getAllTotal.mockResolvedValue(0)
-    sessionRepositoryMock.createSessionRows.mockRejectedValueOnce(new Error('session write failed'))
+  it('keeps one the author has written in', async () => {
+    mocks.getSessionContextSource.mockResolvedValue({ pathMessageIds: ['m1', 'm2', 'm3'] })
+    await removeUntouchedExampleSessions()
+    expect(mocks.deleteSession).not.toHaveBeenCalled()
+  })
 
-    await expect(initData()).rejects.toThrow('session write failed')
-
-    expect(metaStorage.createMany).not.toHaveBeenCalled()
+  it('leaves the conversations alone when one cannot be read', async () => {
+    mocks.getSessionContextSource.mockRejectedValue(new Error('locked'))
+    await expect(removeUntouchedExampleSessions()).resolves.toBeUndefined()
+    expect(mocks.deleteSession).not.toHaveBeenCalled()
   })
 })
-
-metaStorage satisfies Pick<SessionMetaStorage, 'getAllTotal' | 'createMany'>

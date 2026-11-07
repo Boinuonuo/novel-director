@@ -6,6 +6,7 @@ import type { SessionHeader } from '@shared/types'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Drawer } from 'vaul'
+import { NovelMemoryPanel } from '@/components/novel/NovelMemoryPanel'
 import { SettingsDensityProvider } from '@/components/settings/SettingsLayout'
 import { useSessionAgentMode } from '@/stores/session/agent-mode'
 import { SessionSettingsContent } from './SessionSettingsContent'
@@ -35,7 +36,9 @@ export function SessionSheet({
   const close = useCallback(() => closeSessionPanel(sessionId), [sessionId])
 
   const showThreads = session ? mode === 'chat' || threadQuery.threads.length > 1 : false
-  const tab = panel.tab === 'threads' && showThreads ? 'threads' : 'settings'
+  const showNovel = session?.settings?.novelMode === true
+  const tab =
+    panel.tab === 'threads' && showThreads ? 'threads' : panel.tab === 'novel' && showNovel ? 'novel' : 'settings'
 
   return (
     <Drawer.Root
@@ -53,17 +56,20 @@ export function SessionSheet({
         >
           <Drawer.Handle className="!mt-2 !mb-1" />
           <Drawer.Title className="sr-only">{t('Conversation panel')}</Drawer.Title>
-          {showThreads && (
+          {(showThreads || showNovel) && (
             <div className="shrink-0 px-3 pb-2 pt-1">
               <SegmentedControl
                 fullWidth
                 size="sm"
                 radius="md"
                 value={tab}
-                onChange={(value) => showSessionPanelTab(sessionId, value === 'threads' ? 'threads' : 'settings')}
+                onChange={(value) =>
+                  showSessionPanelTab(sessionId, value === 'threads' || value === 'novel' ? value : 'settings')
+                }
                 data={[
                   { value: 'settings', label: t('Conversation Settings') },
-                  { value: 'threads', label: t('Thread History') },
+                  ...(showThreads ? [{ value: 'threads', label: t('Thread History') }] : []),
+                  ...(showNovel ? [{ value: 'novel', label: t('Story memory') }] : []),
                 ]}
               />
             </div>
@@ -82,6 +88,8 @@ export function SessionSheet({
                   </>
                 )}
               </div>
+            ) : tab === 'novel' ? (
+              <NovelMemoryPanel session={session} />
             ) : tab === 'threads' ? (
               <div className="rounded-xl bg-chatbox-background-primary p-1">
                 <ThreadHistoryList key={session.id} session={session} onNavigate={close} inlineMenus />

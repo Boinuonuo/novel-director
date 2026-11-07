@@ -14,6 +14,7 @@ import { rendererApplication } from '@/app/renderer-application'
 import { getLogger } from '@/lib/utils'
 import { settingsService } from '@/settings-runtime'
 import { setCompactionUIState } from '@/stores/atoms/compactionAtoms'
+import { getNovelContextSource } from '@/stores/session/novel-context-registry'
 import { getSessionLockStateNow } from '@/stores/session/action-guard'
 import { getSessionAgentModeEntry } from '@/stores/session/agent-mode'
 import { readConversationAnchorId, enqueueCompactionRequest, hasQueuedWork } from '@/stores/session/message-queue'
@@ -42,6 +43,9 @@ const compactionService = new CompactionService({
       if (!modelId) return null
 
       try {
+        // Records that keep up with the story replace compaction: nothing needs summarizing here.
+        if (sessionSettings.novelMode && (await getNovelContextSource()?.coversHistory?.(sessionId))) return null
+
         const model = providerId ? { provider: providerId, modelId } : undefined
         const policy = await resolveTokenEstimationPolicy(
           { ...sessionSettings, provider: providerId, modelId },

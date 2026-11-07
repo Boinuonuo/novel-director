@@ -3,6 +3,8 @@ import { useLayoutEffect, useRef } from 'react'
 
 const STREAMING_TEXT_FADE_RETENTION_MS = 350
 const MAX_OBSERVED_STREAM_KEYS = 200
+// A stable identity lets finished Markdown keep its parser/plugin configuration.
+const NO_STREAMING_SEGMENTS: StreamingTextSegment[] = []
 const observedStreamKeys = new Set<string>()
 
 export type StreamingTextSegment = {
@@ -36,11 +38,11 @@ export function useStreamingTextSegments(
   )
   const previousState = previousStateRef.current
   const prefersReducedMotion =
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    generating && typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
   let segments: StreamingTextSegment[]
   if (!generating || prefersReducedMotion || text.length === 0) {
-    segments = []
+    segments = NO_STREAMING_SEGMENTS
   } else if (text === previousState.text) {
     segments = previousState.segments
   } else if (previousState.text === null) {
@@ -57,7 +59,7 @@ export function useStreamingTextSegments(
       },
     ]
   } else {
-    segments = []
+    segments = NO_STREAMING_SEGMENTS
   }
 
   useLayoutEffect(() => {

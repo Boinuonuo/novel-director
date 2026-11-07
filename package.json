@@ -1,13 +1,13 @@
 {
-  "name": "xyz.chatboxapp.ce",
-  "productName": "xyz.chatboxapp.ce",
-  "version": "0.0.1",
+  "name": "novel-director",
+  "productName": "Novel Director",
+  "version": "0.1.0",
   "engines": {
     "node": ">=22.13.0 <23.0.0",
     "pnpm": ">=10.17.0"
   },
   "private": true,
-  "description": "A desktop client for multiple cutting-edge AI models",
+  "description": "A desktop client for writing long novels together with AI",
   "main": "out/main/main.js",
   "scripts": {
     "generate:model-snapshot": "pnpm exec tsx scripts/generate-model-snapshot.ts",
@@ -46,6 +46,7 @@
     "test:model-provider": "cross-env RUN_MODEL_PROVIDER_TESTS=1 vitest run test/integration/model-provider --testTimeout=120000",
     "test:claude-prompt-cache-live": "cross-env RUN_MODEL_PROVIDER_TESTS=1 RUN_CLAUDE_PROMPT_CACHE_LIVE=1 vitest run test/integration/model-provider/claude-prompt-cache-live.test.ts --testTimeout=180000",
     "test:openrouter-image-live": "cross-env RUN_MODEL_PROVIDER_TESTS=1 RUN_OPENROUTER_IMAGE_LIVE=1 vitest run test/integration/model-provider/openrouter-image-live.test.ts --testTimeout=180000",
+    "eval:novel-context": "vitest run packages/chatbox-core/src/novel/novel-context.eval.test.ts --silent=false --reporter=verbose",
     "eval:session-rag": "node scripts/session-rag-eval/run-session-rag-eval.mjs",
     "eval:session-rag:chatbox": "node scripts/session-rag-eval/run-chatbox-flow-eval.mjs",
     "lint": "biome lint .",
@@ -68,12 +69,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/chatboxai/chatbox.git"
+    "url": "https://github.com/Boinuonuo/novel-director.git"
   },
   "keywords": [],
   "author": {
-    "name": "bennhuang",
-    "email": "tohuangbin@gmail.com"
+    "name": "Boinuonuo"
   },
   "devDependencies": {
     "@cfworker/json-schema": "4.1.1",

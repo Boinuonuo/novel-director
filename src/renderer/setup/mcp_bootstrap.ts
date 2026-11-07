@@ -27,7 +27,7 @@ initSettingsStore()
   .then((settings) => {
     const { mcp, licenseKey } = settings
     const servers = [
-      ...(mcp.enabledBuiltinServers || []).map((id) => getBuiltinServerConfig(id, licenseKey)).filter((s) => !!s),
+      ...(mcp.enabledBuiltinServers || []).map((id) => getBuiltinServerConfig(id)).filter((s) => !!s),
       ...(mcp.servers || []), // user defined servers
     ]
     console.info(`mcp bootstrap ${servers.length} servers, with license key: ${!!licenseKey}`)

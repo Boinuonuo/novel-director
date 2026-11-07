@@ -1,6 +1,6 @@
 # 思考控制（Reasoning Control）
 
-> Last updated: 2026-08
+> Last updated: 2026-11-07
 
 本文梳理「思考控制」（即推理强度 / thinking effort）的**支持条件判定逻辑**，以及参数从 UI 选择到请求发出的完整流转，供后续维护参考。
 
@@ -74,6 +74,7 @@ getReasoningControlCapabilities(provider, model): {
 | effectiveProvider | model-id 匹配 | kind | 档位形态 |
 |-------------------|--------------|------|---------|
 | Claude | `claude-opus-4-(7\|8)`、`claude-opus-5` | `anthropic-adaptive-effort` | low/medium/high（adaptive effort） |
+| Claude | `claude-sonnet-5*`、`claude-haiku-5-5`（含点号版本及供应商前缀） | `anthropic-adaptive-effort` | low/medium/high（adaptive effort） |
 | Claude | `claude-opus-4-5` | `anthropic-effort` | low/medium/high（effort） |
 | Claude | `claude-3-7-sonnet`、`claude-sonnet-4`、`claude-haiku-4-5`、`claude-opus-4`(非 4.5/4.7/4.8) | `budget` | off + low/medium/high（thinking budget） |
 | Gemini | `getGoogleThinkingMode()` 为 `budget` | `budget` | thinkingBudget |
@@ -83,11 +84,16 @@ getReasoningControlCapabilities(provider, model): {
 | ChatboxAI 的 DeepSeek V4 | `isDeepSeekReasoningEffortModel()` + 服务端返回的 `apiStyle`（OpenAI Chat / Anthropic / Responses） | `deepseek-effort` | off + low/medium/high，按 API 风格映射官方参数 |
 | ChatboxAI 的 V4 之前 DeepSeek 思考模型 | `isDeepSeekReasoningModel()` 且非 V4；OpenAI Chat / Anthropic | `toggle` | off + on |
 | OpenAI 系（OpenAI / OpenAIResponses / Azure） | `gpt-5*`、`gpt-oss*`（`GPT_EFFORT_MODELS`） | `openai-effort` | off + low/medium/high |
+| OpenAI 风格 / 自建 OpenAI-compatible | `muse-spark`、`muse-spark-1.3`、`muse-spark-1.3-contributor` 等托管版本（含 `meta/` 前缀） | `openai-effort` | low/medium/high，无 off |
 | Qwen / QwenPortal | `qwen3*`（`QWEN_THINKING_MODELS`） | `budget` | off + low/medium/high |
 | XAI | `grok-4*`（`GROK_REASONING_EFFORT_MODELS`） | `xai-effort` | off + low/medium/high |
 | OpenRouter | `isOpenRouterReasoningModel()`（聚合上述 Claude/GPT/Qwen/Grok/DeepSeek/o 系列） | `openrouter-reasoning` | off + low/medium/high |
 
 不匹配任何一项 → `DEFAULT_CAPABILITIES`（`supported: false`），控件隐藏、请求侧剥离参数。
+
+Sonnet 5 / 5.5 与 Haiku 5.5 使用 effort，而不是旧版 `thinking.budget_tokens`；原生 Claude 请求发送 `output_config.effort` 和 adaptive thinking。Muse Spark 的 Chat Completions 请求发送 `reasoning_effort`，Responses 请求发送 `reasoning.effort`。这两类模型也支持 OpenRouter 的 `reasoning.effort` 映射；Sonnet / Opus 5.5 和 Muse Spark 在 OpenRouter 下同样不提供普通 off 选项。UI 继续提供统一的 default / low / medium / high，不暴露所有厂商扩展档位。Muse Spark 原生参数校验允许 `minimal`，拒绝 `none`，Contributor 额外拒绝 `max`；`muse-spark-open` 不属于这条 API 路径，不按相同规则识别。
+
+参数依据：[Claude effort](https://platform.claude.com/docs/en/build-with-claude/effort)、[Meta reasoning](https://dev.meta.ai/docs/reasoning)、[OpenRouter Sonnet 5.5](https://openrouter.ai/docs/cookbook/evaluate-and-optimize/model-migrations/claude-5-5)。
 
 > 这些常量列表（`GPT_EFFORT_MODELS`、`CLAUDE_*`、`QWEN_THINKING_MODELS`、`GROK_REASONING_EFFORT_MODELS` 等）就是「写死的 model id / 前缀」的来源。**新增支持思考的模型，在这里加正则即可。**
 

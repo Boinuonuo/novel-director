@@ -33,7 +33,6 @@ import './setup/load_polyfill'
 // Publish the automation contract version during renderer startup.
 import './setup/automation_contract'
 // 引入保护代码
-import './setup/protect'
 
 // 开发环境下引入错误测试工具
 // if (process.env.NODE_ENV === 'development') {
@@ -46,7 +45,6 @@ import './setup/protect'
 
 if (CHATBOX_BUILD_TARGET === 'mobile_app') {
   void import('./setup/mobile_safe_area')
-
 }
 
 // ==========渲染节点==============
@@ -142,7 +140,8 @@ void runRendererStartup({
     // covering the page forever.
     const root = document.getElementById('root')
     if (root) {
-      root.innerHTML = '<div class="startup-error">Chatbox could not start. Please reload the page.</div>'
+      root.innerHTML =
+        '<div class="startup-error">Novel Director 无法启动。如果它还在运行（可能在系统托盘里），请先退出，再重新打开。</div>'
     }
     console.error('Failed to bootstrap Chatbox:', error)
   },

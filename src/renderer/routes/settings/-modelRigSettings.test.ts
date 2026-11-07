@@ -130,8 +130,8 @@ describe('model rig slot settings', () => {
       defaultEmbeddingModel: undefined,
       defaultRerankModel: undefined,
     })
-    expect(applyAllPresetsExtension(current).webSearch.provider).toBe('build-in')
-    expect(applyAllPresetsExtension(current).documentParser?.type).toBe('chatbox-ai')
+    expect(applyAllPresetsExtension(current).webSearch.provider).toBe('bing')
+    expect(applyAllPresetsExtension(current).documentParser?.type).toBe('local')
     expect(applyAllPresetsExtension(current).webSearch.tavilyApiKey).toBe('secret')
   })
 

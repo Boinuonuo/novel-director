@@ -5,11 +5,7 @@ import { TestId } from '@shared/automation/testids'
 import {
   IconCode,
   IconDownload,
-  IconHelpCircle,
   IconInfoCircle,
-  IconLayoutSidebarLeftCollapse,
-  IconMessageChatbot,
-  IconPhotoPlus,
   IconPlus,
   type IconProps,
   IconSearch,
@@ -27,8 +23,8 @@ import { ScalableIcon } from './components/common/ScalableIcon'
 import ThemeSwitchButton from './components/dev/ThemeSwitchButton'
 import { useAppTitleBarHeight } from './components/layout/AppTitleBar'
 import { SidebarDesktopDownloadCard, useWebAppDownloadPromptVisible } from './components/layout/DesktopDownloadReminder'
-import { SidebarLowQuotaReminder } from './components/layout/LowQuotaReminder'
 import { overlayStackAtom } from './components/layout/Overlay'
+import { NovelContentsSidebar } from './components/novel/NovelContentsCard'
 import { formatShortcut } from './components/Shortcut'
 import SessionList from './components/session/SessionList'
 import { FORCE_ENABLE_DEV_PAGES } from './dev/devToolsConfig'
@@ -110,14 +106,6 @@ export default function Sidebar() {
     }
     trackingEvent('create_new_conversation', { event_category: 'user' })
   }, [navigate, setShowSidebar, isSmallScreen])
-
-  const handleCreateNewPictureSession = useCallback(() => {
-    navigate({ to: '/image-creator' })
-    if (isSmallScreen) {
-      setShowSidebar(false)
-    }
-    trackingEvent('open_image_creator', { event_category: 'user' })
-  }, [isSmallScreen, setShowSidebar, navigate])
 
   const handleDownloadApp = useCallback(() => {
     void platform.openLink(
@@ -233,7 +221,7 @@ export default function Sidebar() {
             >
               <Image src={icon} w={20} h={20} />
               <Text span c="chatbox-primary" fz={16} lh="24px" fw={600} truncate>
-                Chatbox
+                Novel Director
               </Text>
               {/\d/.test(versionHook.version) && (
                 <Text span c="chatbox-tertiary" size="sm">
@@ -255,20 +243,6 @@ export default function Sidebar() {
             shortcut={isSmallScreen ? undefined : ['mod', 'K']}
             onClick={handleOpenSearch}
           />
-          <SidebarNavRow
-            testId={TestId.sidebar.newImage}
-            label={t('Create Image')}
-            icon={IconPhotoPlus}
-            onClick={handleCreateNewPictureSession}
-          />
-          <SidebarNavRow
-            label={t('My Copilots')}
-            icon={IconMessageChatbot}
-            onClick={() => {
-              navigate({ to: '/copilots' })
-              closeOnSmallScreen()
-            }}
-          />
           <Box
             data-testid={TestId.sidebar.scrollDivider}
             aria-hidden="true"
@@ -285,11 +259,11 @@ export default function Sidebar() {
 
         <SessionList sessionListViewportRef={sessionListViewportRef} atTopStateChange={setIsSessionListAtTop} />
 
+        {isSessionRoute && <NovelContentsSidebar />}
+
         <SidebarUpdateBanner />
 
-        <Box px="xs" pb="xs" className="empty:hidden">
-          <SidebarLowQuotaReminder />
-        </Box>
+        <Box px="xs" pb="xs" className="empty:hidden"></Box>
 
         {showDesktopDownloadCard && (
           <Box px="xs" pb="xs">
@@ -320,21 +294,6 @@ export default function Sidebar() {
                 }}
               />
             </Box>
-            {!versionHook.isExceeded && (
-              <Tooltip label={t('Help')} openDelay={500} withArrow>
-                <IconButton
-                  icon={IconHelpCircle}
-                  size={footerButtonSize}
-                  iconSize={footerIconSize}
-                  aria-label={t('Help')}
-                  color="chatbox-tertiary"
-                  onClick={() => {
-                    navigate({ to: '/guide' })
-                    closeOnSmallScreen()
-                  }}
-                />
-              </Tooltip>
-            )}
             {FORCE_ENABLE_DEV_PAGES && CHATBOX_BUILD_PLATFORM !== 'web' && (
               <Tooltip label="Dev Tools" openDelay={500} withArrow>
                 <IconButton

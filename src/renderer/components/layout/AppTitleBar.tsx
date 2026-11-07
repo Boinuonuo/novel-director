@@ -76,7 +76,7 @@ export function AppTitleBar() {
           >
             <Image src={icon} w={18} h={18} />
             <Text span fz={14} fw={600} lh="20px" c="chatbox-primary" truncate>
-              Chatbox
+              Novel Director
             </Text>
           </Flex>
         )}

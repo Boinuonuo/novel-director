@@ -667,6 +667,8 @@ const MessageList = forwardRef<
                 msg={message}
                 sessionId={session.id}
                 sessionType={session.type || 'chat'}
+                novel={session.settings?.novelMode === true}
+                latest={last}
                 readOnly={session.type === 'picture'}
                 className={spacing}
                 collapseThreshold={message.role === 'system' ? 150 : undefined}

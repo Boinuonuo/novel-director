@@ -411,7 +411,7 @@ export function RouteComponent() {
           void NiceModal.show('confirm', {
             title: t('Reset model selections?'),
             message: t(
-              'This replaces your selections on this page with automatic models and Chatbox services. Your provider credentials are kept. Some services require Chatbox AI.'
+              'This replaces your selections on this page with automatic models. Your provider credentials are kept.'
             ),
             confirmText: t('Reset selections'),
             cancelText: t('Cancel'),
@@ -574,7 +574,7 @@ function SlotSelector(
 
   if (props.slotId === 'parser') {
     const options = withCurrentOption(
-      ['chatbox-ai', ...customParserTypes(parserHost())].map((value) => ({
+      customParserTypes(parserHost()).map((value) => ({
         value,
         label: t(PARSER_OPTION_LABELS[value]),
       })),
@@ -594,10 +594,7 @@ function SlotSelector(
   }
 
   if (props.slotId === 'search') {
-    const options = WEB_SEARCH_PROVIDERS.map((item) => ({
-      value: item.value,
-      label: item.value === 'build-in' ? t('Chatbox AI Search') : item.label,
-    }))
+    const options = WEB_SEARCH_PROVIDERS.map((item) => ({ value: item.value, label: item.label }))
     return (
       <AdaptiveSelect
         comboboxProps={{ withinPortal: true, withArrow: true }}

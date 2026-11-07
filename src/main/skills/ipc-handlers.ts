@@ -3,11 +3,11 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import type { MarketplaceSkill } from '@shared/types/skills'
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, ipcMain, shell } from 'electron'
 import { resolveFailedCommandRetry } from '../command-execution-policy'
 import { getLoginShellPath } from '../sandbox/login-shell-env'
 import { getLogger } from '../util'
-import { discoverBuiltinSkills, ensureBuiltinSeeded, syncBuiltinSkills } from './builtin-sync'
+import { discoverBuiltinSkills, ensureBuiltinSeeded, } from './builtin-sync'
 import { discoverAgentSkills, discoverClaudeSkills, discoverSkills } from './discovery'
 import { detectSkillsInRepo } from './github-fetcher'
 import {
@@ -50,12 +50,6 @@ function invalidateSkillCache(): void {
   skillPathCache = null
 }
 
-function broadcastBuiltinUpdated(): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('skills:builtin-updated')
-  }
-}
-
 function buildSkillCache(): Map<string, string> {
   const builtinSkillInfos = discoverBuiltinSkills()
   const chatboxSkills = discoverSkills(getSkillsDir())
@@ -78,26 +72,8 @@ export function registerSkillsHandlers() {
   void getLoginShellPath()
   // 确保打包种子已落地，保证内置 skill 立即可用（含离线）
   ensureBuiltinSeeded()
-  // 后台静默从后端同步内置 skill，有更新则覆盖快照并通知 renderer 刷新
-  syncBuiltinSkills()
-    .then((changed) => {
-      if (changed) {
-        invalidateSkillCache()
-        broadcastBuiltinUpdated()
-      }
-    })
-    .catch((error) => log.warn('initial builtin skills sync failed', error))
-
-  ipcMain.handle('skills:sync-builtin', async (_event, lang?: string) => {
-    try {
-      const changed = await syncBuiltinSkills(lang)
-      if (changed) invalidateSkillCache()
-      return { changed }
-    } catch (error) {
-      log.error('skills:sync-builtin failed', error)
-      return { changed: false }
-    }
-  })
+  // The bundled skills stay as shipped: this fork does not ask Chatbox's backend for newer ones.
+  ipcMain.handle('skills:sync-builtin', () => ({ changed: false }))
 
   ipcMain.handle('skills:discover', () => {
     try {

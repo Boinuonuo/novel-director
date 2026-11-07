@@ -1,63 +1,27 @@
+import { NOVEL_DEFAULT_PROMPT } from '@chatbox/core/novel'
 import NiceModal from '@ebay/nice-modal-react'
-import { ActionIcon, Avatar, Box, Divider, Flex, ScrollArea, Space, Stack, Text } from '@mantine/core'
-import {
-  type AgentModeEntry,
-  type CopilotDetail,
-  createMessage,
-  type ImageSource,
-  ModelProviderEnum,
-  type Message,
-  type SessionHeader,
-  type SessionSettings,
-} from '@shared/types'
-import { IconChevronLeft, IconChevronRight, IconMessageCircle2Filled, IconX } from '@tabler/icons-react'
-import { createFileRoute, useRouterState } from '@tanstack/react-router'
+import { Button, Stack, Text } from '@mantine/core'
+import { getDefaultPrompt } from '@shared/defaults'
+import { createMessage, type Message, type SessionHeader, type SessionSettings } from '@shared/types'
+import { createFileRoute } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
-import clsx from 'clsx'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import { trackJkClickEvent } from '@/analytics/jk'
-import { JK_EVENTS, JK_PAGE_NAMES } from '@/analytics/jk-events'
 import { rendererApplication } from '@/app/renderer-application'
-import { ChatboxWelcomeCard } from '@/components/common/ChatboxWelcomeCard'
-import { ScalableIcon } from '@/components/common/ScalableIcon'
-import { ImageInStorage } from '@/components/Image'
 import InputBox, { type InputBoxPayload } from '@/components/InputBox/InputBox'
 import HomepageIcon from '@/components/icons/HomepageIcon'
-import { paddedContentColumnClassName } from '@/components/layout/contentColumn'
 import Page from '@/components/layout/Page'
-import { getForceShowNewUserScenarioCardsFlag } from '@/dev/devToolsFlags'
-import { useMyCopilots, useRemoteCopilotsByCursor } from '@/hooks/useCopilots'
+import { navigateToSettings } from '@/modals/settings-navigation'
 import { useProviders } from '@/hooks/useProviders'
 import { useIsSmallScreen } from '@/hooks/useScreenChange'
-import useVersion from '@/hooks/useVersion'
-import * as remote from '@/packages/remote'
-import { router } from '@/router'
-import { useAuthInfoStore } from '@/stores/authInfoStore'
 import { resolveChatboxLicenseDefaultModel } from '@/stores/defaultChatModel'
 import { lastUsedModelStore } from '@/stores/lastUsedModelStore'
-import { getHasCompletedFirstSuccessfulChat } from '@/stores/firstSuccessfulChat'
 import { getSessionAgentModeEntry } from '@/stores/session/agent-mode'
 import { switchCurrentSession } from '@/stores/session/crud'
-import { generate } from '@/stores/session/generation'
 import { submitNewUserMessage } from '@/stores/session/messages'
 import { settingsStore, useSettingsStore } from '@/stores/settingsStore'
 import { useUIStore } from '@/stores/uiStore'
-import { getHomeWelcomeCardMode } from '@/utils/homeWelcomeCard'
-import { NewUserScenarioGrid } from './-new-user-scenarios/NewUserScenarioGrid'
-import { type NewUserScenario, newUserScenarios, resolveNewUserScenarioContent } from './-new-user-scenarios/scenarios'
-
-const scenarioAgentModeOff = {
-  value: 'off',
-  locked: false,
-  lockReason: null,
-} satisfies AgentModeEntry
-
-const firstChatScenarioDefaultModel = {
-  provider: ModelProviderEnum.ChatboxAI,
-  modelId: 'chatboxai-3.5',
-} satisfies Pick<SessionSettings, 'provider' | 'modelId'>
 
 export const Route = createFileRoute('/')({
   component: Index,
@@ -72,15 +36,13 @@ export const Route = createFileRoute('/')({
 })
 
 function Index() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const isSmallScreen = useIsSmallScreen()
   const { folderId } = Route.useSearch()
 
   const newSessionState = useUIStore((s) => s.newSessionState)
   const setNewSessionState = useUIStore((s) => s.setNewSessionState)
   const addSessionKnowledgeBase = useUIStore((s) => s.addSessionKnowledgeBase)
-  const showCopilotsInNewSession = useUIStore((s) => s.showCopilotsInNewSession)
-  const widthFull = useUIStore((s) => s.widthFull)
   const sessionWebBrowsingMap = useUIStore((s) => s.sessionWebBrowsingMap)
   const newSessionWebBrowsingDefault = useUIStore((s) => s.newSessionWebBrowsingDefault)
   const newSessionCommandApprovalModeDefault = useUIStore((s) => s.newSessionCommandApprovalModeDefault)
@@ -97,33 +59,12 @@ function Index() {
     return { id: 'new', name: 'Untitled', type: 'chat', threadName: '', settings: { ...model } }
   })
   const [systemPrompt, setSystemPrompt] = useState(() => settingsStore.getState().defaultPrompt || '')
-  const [hasCompletedFirstSuccessfulChat, setHasCompletedFirstSuccessfulChat] = useState<boolean | null>(null)
-  const [forceShowNewUserScenarioCards, setForceShowNewUserScenarioCards] = useState(
-    getForceShowNewUserScenarioCardsFlag
-  )
-  const hasUserSelectedModelRef = useRef(false)
-
   const { providers } = useProviders()
   const defaultChatModel = useSettingsStore((s) => s.defaultChatModel)
-  const hasLicense = useSettingsStore((s) => Boolean(s.licenseKey))
   const licenseKey = useSettingsStore((s) => s.licenseKey)
   const licenseDetail = useSettingsStore((s) => s.licenseDetail)
   const licensePlanName = useSettingsStore((s) => s.licensePlanName)
   const hasExpiredLicense = useSettingsStore((s) => s.hasExpiredLicense)
-  const isLoggedIn = useAuthInfoStore((s) => Boolean(s.accessToken && s.refreshToken))
-  const { isExceeded, isExceededResolved } = useVersion()
-  const welcomeCardMode = useMemo(
-    () =>
-      getHomeWelcomeCardMode({
-        providerCount: providers.length,
-        isLoggedIn,
-        hasLicense,
-        hasExpiredLicense,
-        hideForStoreReview: isExceeded || !isExceededResolved,
-      }),
-    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved]
-  )
-
   const selectedModel = useMemo(() => {
     if (session.settings?.provider && session.settings?.modelId) {
       return {
@@ -134,50 +75,7 @@ function Index() {
   }, [session.settings?.provider, session.settings?.modelId])
 
   useEffect(() => {
-    let cancelled = false
-
-    setForceShowNewUserScenarioCards(getForceShowNewUserScenarioCardsFlag())
-
-    getHasCompletedFirstSuccessfulChat()
-      .then((completed) => {
-        if (!cancelled) {
-          setHasCompletedFirstSuccessfulChat(completed)
-        }
-      })
-      .catch((error) => {
-        console.warn('[new-user-scenarios] failed to resolve first successful chat state:', error)
-        if (!cancelled) {
-          setHasCompletedFirstSuccessfulChat(true)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
     setSession((old) => {
-      if (
-        hasCompletedFirstSuccessfulChat === false &&
-        isLoggedIn &&
-        !session.copilotId &&
-        !hasUserSelectedModelRef.current
-      ) {
-        if (
-          old.settings?.provider === firstChatScenarioDefaultModel.provider &&
-          old.settings?.modelId === firstChatScenarioDefaultModel.modelId
-        ) {
-          return old
-        }
-        return {
-          ...old,
-          settings: {
-            ...(old.settings || {}),
-            ...firstChatScenarioDefaultModel,
-          },
-        }
-      }
       if (old.settings?.provider && old.settings?.modelId) {
         return old
       }
@@ -203,62 +101,9 @@ function Index() {
         },
       }
     })
-  }, [
-    defaultChatModel,
-    hasCompletedFirstSuccessfulChat,
-    hasExpiredLicense,
-    isLoggedIn,
-    licenseDetail,
-    licenseKey,
-    licensePlanName,
-    session.copilotId,
-  ])
+  }, [defaultChatModel, hasExpiredLicense, licenseDetail, licenseKey, licensePlanName])
 
-  const { copilots: myCopilots } = useMyCopilots()
-  const { copilots: remoteCopilots } = useRemoteCopilotsByCursor({ limit: 10 })
-  const selectedCopilotId = useMemo(() => session?.copilotId, [session?.copilotId])
-  const selectedCopilot = useMemo(
-    () => myCopilots.find((c) => c.id === selectedCopilotId) || remoteCopilots.find((c) => c.id === selectedCopilotId),
-    [myCopilots, remoteCopilots, selectedCopilotId]
-  )
-  useEffect(() => {
-    setSession((old) => ({
-      ...old,
-      assistantAvatarKey:
-        selectedCopilot?.avatar?.type === 'storage-key' ? selectedCopilot.avatar.storageKey : undefined,
-      picUrl: selectedCopilot?.avatar?.type === 'url' ? selectedCopilot.avatar.url : selectedCopilot?.picUrl,
-      backgroundImage: selectedCopilot?.backgroundImage,
-      name: selectedCopilot?.name || 'Untitled',
-      threadName: '',
-    }))
-    setSystemPrompt(selectedCopilot?.prompt ?? (settingsStore.getState().defaultPrompt || ''))
-  }, [selectedCopilot])
-
-  const routerState = useRouterState()
-  useEffect(() => {
-    const { copilotId, copilot } = routerState.location.search
-    if (copilot) {
-      let c: CopilotDetail | null = null
-      try {
-        c = JSON.parse(copilot) as CopilotDetail
-      } catch (_e) {
-        return
-      }
-
-      setSession((old) => ({
-        ...old,
-        copilotId: c.id,
-        assistantAvatarKey: c.avatar?.type === 'storage-key' ? c.avatar.storageKey : undefined,
-        picUrl: c.avatar?.type === 'url' ? c.avatar.url : c.picUrl,
-        backgroundImage: c.backgroundImage,
-        name: c.name || 'Untitled',
-        threadName: '',
-      }))
-      setSystemPrompt(c.prompt)
-    } else if (copilotId) {
-      setSession((old) => ({ ...old, copilotId }))
-    }
-  }, [routerState.location.search])
+  const novelMode = useUIStore((s) => s.newChatNovelMode)
 
   const createPersistedChatSession = useCallback(
     async (options?: {
@@ -272,6 +117,11 @@ function Index() {
       // continue the last explicit choice remembered from any earlier chat.
       const effectiveApprovalMode = newSessionState.commandApprovalMode ?? newSessionCommandApprovalModeDefault
       const effectiveWorkingDirectories = newSessionState.workingDirectories ?? newSessionWorkingDirectoriesDefault
+      // A prompt set for this one chat stands; otherwise a novel starts from the novel prompt.
+      const settings = settingsStore.getState()
+      const untouched = [settings.defaultPrompt ?? '', getDefaultPrompt(), ''].includes(systemPrompt.trim())
+      const usesNovelPrompt = novelMode && untouched
+      const prompt = usesNovelPrompt ? settings.novelDefaultPrompt?.trim() || NOVEL_DEFAULT_PROMPT : systemPrompt
       const newSession = await rendererApplication.sessions.createSession(
         {
           name: options?.name ?? session.name,
@@ -280,7 +130,7 @@ function Index() {
           assistantAvatarKey: session.assistantAvatarKey,
           picUrl: session.picUrl,
           backgroundImage: session.backgroundImage,
-          messages: options?.messages ?? (systemPrompt ? [createMessage('system', systemPrompt)] : []),
+          messages: options?.messages ?? (prompt ? [createMessage('system', prompt)] : []),
           copilotId: session.copilotId,
           threadName: options?.threadName ?? session.threadName ?? '',
           settings: {
@@ -288,7 +138,10 @@ function Index() {
             ...options?.settingsPatch,
             // Bake the exact mode shown while the chat was "new" into the created session, so
             // remembered defaults and transient selections follow the same resolution path.
-            agentMode: getSessionAgentModeEntry('new', undefined, sessionAgentModeMap),
+            agentMode: novelMode
+              ? { value: 'off', locked: false, lockReason: null }
+              : getSessionAgentModeEntry('new', undefined, sessionAgentModeMap),
+            ...(novelMode ? { novelMode: true, novelHeadings: usesNovelPrompt } : {}),
             ...(newSessionState.localWorkCapabilities !== undefined
               ? { localWorkCapabilities: newSessionState.localWorkCapabilities }
               : {}),
@@ -310,12 +163,6 @@ function Index() {
         undefined,
         { copilotName: session.copilotId ? session.name : undefined }
       )
-
-      if (session.copilotId) {
-        void remote
-          .recordCopilotUsage({ id: session.copilotId, action: 'create_session' })
-          .catch((error) => console.warn('[recordCopilotUsage] failed', error))
-      }
 
       // Transfer knowledge base / Work Mode settings from newSessionState to the actual
       // session, then clear it so nothing bleeds into the next new chat. (workingDirectories
@@ -355,6 +202,7 @@ function Index() {
     [
       session,
       systemPrompt,
+      novelMode,
       folderId,
       addSessionKnowledgeBase,
       newSessionState.localWorkCapabilities,
@@ -387,34 +235,7 @@ function Index() {
     [createPersistedChatSession]
   )
 
-  const handleScenarioSelect = useCallback(
-    async (scenario: NewUserScenario) => {
-      const scenarioContent = resolveNewUserScenarioContent(scenario, i18n.language)
-      trackJkClickEvent(JK_EVENTS.LEAD_CHAT_CARD_CLICK, {
-        pageName: JK_PAGE_NAMES.CHAT_PAGE,
-        content: t(scenario.titleKey),
-        contentType: session.settings?.modelId ?? firstChatScenarioDefaultModel.modelId,
-      })
-      const assistantMessage = createMessage('assistant', '')
-      assistantMessage.generating = true
-      const newSession = await createPersistedChatSession({
-        name: scenarioContent.sessionTitle,
-        threadName: scenarioContent.sessionTitle,
-        messages: [
-          createMessage('system', scenarioContent.systemPrompt),
-          createMessage('user', scenarioContent.firstUserMessage),
-          assistantMessage,
-        ],
-        settingsOverride: { agentMode: scenarioAgentModeOff },
-      })
-
-      void generate(newSession.id, assistantMessage, { operationType: 'send_message' })
-    },
-    [createPersistedChatSession, i18n.language, session.settings?.modelId, t]
-  )
-
   const onSelectModel = useCallback((p: string, m: string) => {
-    hasUserSelectedModelRef.current = true
     setSession((old) => ({
       ...old,
       settings: {
@@ -437,290 +258,34 @@ function Index() {
     return true
   }, [session, systemPrompt])
 
-  const showNewUserScenarios =
-    (forceShowNewUserScenarioCards || (hasCompletedFirstSuccessfulChat === false && isLoggedIn)) && !session.copilotId
-
   return (
     <Page title="">
       <div className="p-0 flex flex-col h-full min-h-0 overflow-hidden">
-        <div
-          className={clsx('min-h-0 flex-1 overflow-y-auto', welcomeCardMode !== 'none' ? 'pb-36 sm:pb-32' : 'pb-md')}
-        >
-          {showNewUserScenarios ? (
-            <Stack justify="center" className="min-h-full" py="xl">
-              <NewUserScenarioGrid scenarios={newUserScenarios} onSelect={handleScenarioSelect} />
-            </Stack>
-          ) : (
-            <Stack align="center" justify="center" gap="sm" className="min-h-full">
-              <HomepageIcon className="h-8" />
-              <Text fw="600" size={isSmallScreen ? 'sm' : 'md'}>
-                {t('What can I help you with today?')}
-              </Text>
-            </Stack>
-          )}
+        <div className="min-h-0 flex-1 overflow-y-auto pb-md">
+          <Stack align="center" justify="center" gap="sm" className="min-h-full">
+            <HomepageIcon className="h-8" />
+            <Text fw="600" size={isSmallScreen ? 'sm' : 'md'}>
+              {t('What shall we write today?')}
+            </Text>
+            {providers.length === 0 && (
+              <Button variant="light" size="xs" onClick={() => navigateToSettings('/provider')}>
+                {t('Add a model to start writing')}
+              </Button>
+            )}
+          </Stack>
         </div>
 
         <Stack gap="sm" className="shrink-0">
-          {session.copilotId ? (
-            <Box>
-              <Stack gap="sm" className={paddedContentColumnClassName(widthFull)}>
-                <Flex align="center" gap="sm">
-                  <CopilotItem
-                    name={session.name}
-                    avatar={
-                      session.assistantAvatarKey
-                        ? { type: 'storage-key', storageKey: session.assistantAvatarKey }
-                        : undefined
-                    }
-                    picUrl={session.picUrl}
-                    selected
-                    onClick={() => onClickSessionSettings?.()}
-                  />
-                  <ActionIcon
-                    size={32}
-                    c="chatbox-tertiary"
-                    bg="var(--chatbox-background-secondary)"
-                    onClick={() => setSession((old) => ({ ...old, copilotId: undefined }))}
-                  >
-                    <ScalableIcon icon={IconX} size={24} />
-                  </ActionIcon>
-                </Flex>
-
-                <Text c="chatbox-secondary" className="line-clamp-5">
-                  {systemPrompt}
-                </Text>
-              </Stack>
-            </Box>
-          ) : (
-            showCopilotsInNewSession && (
-              <CopilotPicker onSelect={(copilot) => setSession((old) => ({ ...old, copilotId: copilot?.id }))} />
-            )
-          )}
-
-          <Box className="relative">
-            {welcomeCardMode !== 'none' && (
-              <Box className="pointer-events-none absolute left-0 right-0 z-10" style={{ bottom: '100%' }} mb="sm">
-                <Box className={paddedContentColumnClassName(widthFull)}>
-                  <ChatboxWelcomeCard
-                    mode={welcomeCardMode}
-                    pageName={JK_PAGE_NAMES.CHAT_PAGE}
-                    className="pointer-events-auto w-full"
-                  />
-                </Box>
-              </Box>
-            )}
-
-            <InputBox
-              sessionType="chat"
-              sessionId="new"
-              draftCopilotId={session.copilotId}
-              draftCopilotName={session.copilotId ? session.name : undefined}
-              model={selectedModel}
-              // fullWidth
-              onSelectModel={onSelectModel}
-              onClickSessionSettings={onClickSessionSettings}
-              onSubmit={handleSubmit}
-            />
-          </Box>
+          <InputBox
+            sessionType="chat"
+            sessionId="new"
+            model={selectedModel}
+            onSelectModel={onSelectModel}
+            onClickSessionSettings={onClickSessionSettings}
+            onSubmit={handleSubmit}
+          />
         </Stack>
       </div>
     </Page>
-  )
-}
-
-const MAX_COPILOTS_TO_SHOW = 10
-
-const CopilotPicker = ({ selectedId, onSelect }: { selectedId?: string; onSelect?(copilot?: CopilotDetail): void }) => {
-  const { t } = useTranslation()
-  const isSmallScreen = useIsSmallScreen()
-  const widthFull = useUIStore((s) => s.widthFull)
-  const { copilots: myCopilots } = useMyCopilots()
-  const { copilots: remoteCopilots } = useRemoteCopilotsByCursor()
-
-  const copilots = useMemo(
-    () =>
-      myCopilots.length >= MAX_COPILOTS_TO_SHOW
-        ? myCopilots
-        : [
-            ...myCopilots,
-            ...(myCopilots.length && remoteCopilots.length ? [undefined] : []),
-            ...remoteCopilots
-              .filter((c) => !myCopilots.map((mc) => mc.id).includes(c.id))
-              .slice(0, MAX_COPILOTS_TO_SHOW - myCopilots.length - 1),
-          ],
-    [myCopilots, remoteCopilots]
-  )
-
-  const showMoreButton = useMemo(
-    () => copilots.length < myCopilots.length + remoteCopilots.length,
-    [copilots.length, myCopilots.length, remoteCopilots.length]
-  )
-
-  const viewportRef = useRef<HTMLDivElement>(null)
-  const [scrollPosition, onScrollPositionChange] = useState({ x: 0, y: 0 })
-
-  if (!copilots.length) {
-    return null
-  }
-
-  return (
-    <Box>
-      <Stack gap="xs" className={paddedContentColumnClassName(widthFull)}>
-        <Flex align="center" justify="space-between">
-          <Text size="xxs" c="chatbox-tertiary">
-            {t('My Copilots').toUpperCase()}
-          </Text>
-
-          {!isSmallScreen && (
-            <Flex align="center" gap="sm">
-              <ActionIcon
-                variant="transparent"
-                color="chatbox-tertiary"
-                // onClick={() => setPage((p) => Math.max(p - 1, 0))}
-                onClick={() => {
-                  if (viewportRef.current) {
-                    // const scrollWidth = viewportRef.current.scrollWidth
-                    const clientWidth = viewportRef.current.clientWidth
-                    const newScrollPosition = Math.max(scrollPosition.x - clientWidth, 0)
-                    viewportRef.current.scrollTo({ left: newScrollPosition, behavior: 'smooth' })
-                    onScrollPositionChange({ x: newScrollPosition, y: 0 })
-                  }
-                }}
-              >
-                <ScalableIcon icon={IconChevronLeft} />
-              </ActionIcon>
-              <ActionIcon
-                variant="transparent"
-                color="chatbox-tertiary"
-                // onClick={() => setPage((p) => p + 1)}
-                onClick={() => {
-                  if (viewportRef.current) {
-                    const scrollWidth = viewportRef.current.scrollWidth
-                    const clientWidth = viewportRef.current.clientWidth
-                    const newScrollPosition = Math.min(scrollPosition.x + clientWidth, scrollWidth - clientWidth)
-                    viewportRef.current.scrollTo({ left: newScrollPosition, behavior: 'smooth' })
-                    onScrollPositionChange({ x: newScrollPosition, y: 0 })
-                  }
-                }}
-              >
-                <ScalableIcon icon={IconChevronRight} />
-              </ActionIcon>
-            </Flex>
-          )}
-        </Flex>
-
-        <ScrollArea
-          type={isSmallScreen ? 'never' : 'scroll'}
-          mx="-md"
-          scrollbars="x"
-          offsetScrollbars="x"
-          viewportRef={viewportRef}
-          onScrollPositionChange={onScrollPositionChange}
-          className="copilot-picker-scroll-area"
-        >
-          {scrollPosition.x > 8 && !isSmallScreen && (
-            <div className="absolute top-0 left-0 w-8 h-full bg-gradient-to-r from-chatbox-background-primary to-transparent"></div>
-          )}
-          {!isSmallScreen && (
-            <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-chatbox-background-primary to-transparent"></div>
-          )}
-          <Flex wrap="nowrap" gap="xs">
-            <Space w="xs" />
-            {copilots.map((copilot) =>
-              copilot ? (
-                <CopilotItem
-                  key={copilot.id}
-                  name={copilot.name}
-                  avatar={copilot.avatar}
-                  picUrl={copilot.picUrl}
-                  selected={selectedId === copilot.id}
-                  onClick={() => {
-                    onSelect?.(copilot)
-                  }}
-                />
-              ) : (
-                <Divider key="divider" orientation="vertical" my="xs" mx="xxs" />
-              )
-            )}
-            {showMoreButton && (
-              <CopilotItem
-                name={t('View All Copilots')}
-                noAvatar={true}
-                selected={false}
-                onClick={() =>
-                  router.navigate({
-                    to: '/copilots',
-                  })
-                }
-              />
-            )}
-            <Space w="xs" />
-          </Flex>
-        </ScrollArea>
-      </Stack>
-    </Box>
-  )
-}
-
-const CopilotItem = ({
-  name,
-  avatar,
-  picUrl,
-  selected,
-  onClick,
-  noAvatar = false,
-}: {
-  name: string
-  avatar?: ImageSource
-  picUrl?: string
-  selected?: boolean
-  onClick?(): void
-  noAvatar?: boolean
-}) => {
-  const isSmallScreen = useIsSmallScreen()
-  return (
-    <Flex
-      align="center"
-      gap={isSmallScreen ? 'xxs' : 'xs'}
-      py="xs"
-      px={isSmallScreen ? 'xs' : 'md'}
-      bd={selected ? 'none' : '1px solid var(--chatbox-border-primary)'}
-      bg={selected ? 'var(--chatbox-background-brand-secondary)' : 'transparent'}
-      className={clsx(
-        'max-w-[75vw] sm:max-w-[50vw] cursor-pointer shrink-0 shadow-sm',
-        isSmallScreen ? 'rounded-full' : 'rounded-lg'
-      )}
-      onClick={onClick}
-    >
-      {!noAvatar &&
-        (avatar?.type === 'storage-key' || avatar?.type === 'url' || picUrl ? (
-          <Avatar
-            src={avatar?.type === 'storage-key' ? '' : avatar?.url || picUrl}
-            alt={name}
-            size={isSmallScreen ? 20 : 24}
-            radius="lg"
-            className="flex-shrink-0 border border-solid border-chatbox-border-primary"
-          >
-            {avatar?.type === 'storage-key' ? (
-              <ImageInStorage storageKey={avatar.storageKey} className="object-cover object-center w-full h-full" />
-            ) : (
-              name?.charAt(0)?.toUpperCase()
-            )}
-          </Avatar>
-        ) : (
-          <Stack
-            w={isSmallScreen ? 20 : 24}
-            h={isSmallScreen ? 20 : 24}
-            align="center"
-            justify="center"
-            className="flex-shrink-0 rounded-full bg-chatbox-background-brand-secondary"
-          >
-            <ScalableIcon icon={IconMessageCircle2Filled} size={24} className="text-chatbox-tint-brand" />
-          </Stack>
-        ))}
-      <Text fw="600" c={selected ? 'chatbox-brand' : 'chatbox-primary'} lineClamp={1}>
-        {name}
-      </Text>
-    </Flex>
   )
 }

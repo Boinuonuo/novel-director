@@ -249,10 +249,6 @@ vi.mock('@capacitor-community/sqlite', () => ({
 }))
 
 // Mock only external dependencies, not storage or platform
-vi.mock('@/setup/init_data', () => ({
-  initData: vi.fn().mockResolvedValue(undefined),
-}))
-
 vi.mock('../platform/storages', () => ({
   getOldVersionStorages: vi.fn(() => []),
   DesktopFileStorage: vi.fn(),
@@ -397,7 +393,6 @@ describe('migrateStorage test', () => {
   })
 
   it('should skip migration when config version is already current', async () => {
-    const { initData } = await import('@/setup/init_data')
 
     // Setup: Desktop v1.17.0 - configVersion = 14 (current) in IPC file storage
     ipcFileData[StorageKey.ConfigVersion] = JSON.stringify(14)
@@ -406,14 +401,12 @@ describe('migrateStorage test', () => {
     await migration._migrateStorageForTest()
 
     // Should not initialize data or set version when already at current version
-    expect(initData).not.toHaveBeenCalled()
     // configVersion should remain 14
     expect(ipcFileData[StorageKey.ConfigVersion]).toBe(JSON.stringify(14))
   })
 
   it('should initialize data on first run (configVersion = 0, no old storage)', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Setup: First run - no data in any storage
     // All storage containers are empty
@@ -427,12 +420,10 @@ describe('migrateStorage test', () => {
 
     // Should set current version (15) to IPC file storage (Desktop platform)
     expect(ipcFileData[StorageKey.ConfigVersion]).toBe(JSON.stringify(15))
-    expect(initData).toHaveBeenCalled()
   })
 
   it('should not migrate when old storage type matches current storage type', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Desktop platform already set in beforeEach
 
@@ -463,8 +454,6 @@ describe('migrateStorage test', () => {
     expect(mockOldStorage.getAllStoreValues).not.toHaveBeenCalled()
     expect(mockOldStorage.delStoreValue).not.toHaveBeenCalled()
 
-    // configVersion is 12 (from file storage), not 0, so no initData
-    expect(initData).not.toHaveBeenCalled()
 
     // Session data is already accessible through shared IndexedDB (localforageData)
     expect(localforageData[StorageKey.ChatSessionsList]).toBeDefined()
@@ -474,7 +463,6 @@ describe('migrateStorage test', () => {
 
   it('should migrate from desktop file storage (v1.9.x) to v1.17.0', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Desktop platform already set in beforeEach
 
@@ -531,12 +519,10 @@ describe('migrateStorage test', () => {
       expect.stringContaining('migrated from DESKTOP_FILE to INDEXEDDB')
     )
 
-    expect(initData).not.toHaveBeenCalled()
   })
 
   it('should skip migration when old storage has same type as current storage', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Setup: Switch to Mobile platform
     currentPlatform = mobilePlatform
@@ -566,12 +552,10 @@ describe('migrateStorage test', () => {
     expect(mockOldStorage.getAllStoreKeys).not.toHaveBeenCalled()
     expect(mockOldStorage.setStoreValue).not.toHaveBeenCalled()
     expect(mockOldStorage.setAllStoreValues).not.toHaveBeenCalled()
-    expect(initData).not.toHaveBeenCalled()
   })
 
   it('should migrate from localStorage (v1.9.8) to SQLite (v1.17.0) on mobile', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Setup: Switch to Mobile platform
     currentPlatform = mobilePlatform
@@ -611,12 +595,10 @@ describe('migrateStorage test', () => {
       expect.stringContaining('migrated from LOCAL_STORAGE to MOBILE_SQLITE')
     )
 
-    expect(initData).not.toHaveBeenCalled()
   })
 
   it('should migrate from IndexedDB (v1.16.1) to SQLite (v1.17.0) on mobile', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Setup: Switch to Mobile platform
     currentPlatform = mobilePlatform
@@ -655,12 +637,10 @@ describe('migrateStorage test', () => {
       expect.stringContaining('migrated from INDEXEDDB to MOBILE_SQLITE')
     )
 
-    expect(initData).not.toHaveBeenCalled()
   })
 
   it('should handle multiple old storages and pick the newest one (mobile: localStorage v5 + IndexedDB v12)', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Setup: Switch to Mobile platform
     currentPlatform = mobilePlatform
@@ -716,12 +696,10 @@ describe('migrateStorage test', () => {
     // localStorage should NOT be marked as migrated
     expect(mockLocalStorage.setStoreValue).not.toHaveBeenCalled()
 
-    expect(initData).not.toHaveBeenCalled()
   })
 
   it('should migrate from desktop file (v1.9.10) to IndexedDB (v1.16.1) and preserve settings/configs in file', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Desktop platform already set in beforeEach
 
@@ -767,12 +745,10 @@ describe('migrateStorage test', () => {
     expect(deletedKeys).not.toContain(StorageKey.Configs)
     expect(deletedKeys).not.toContain(StorageKey.ConfigVersion)
 
-    expect(initData).not.toHaveBeenCalled()
   })
 
   it('should handle mobile migration with SQLite v7 data (v1.9.11 to v1.17.0)', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Setup: Switch to Mobile platform
     currentPlatform = mobilePlatform
@@ -801,15 +777,12 @@ describe('migrateStorage test', () => {
     // Current storage reads configVersion from sqliteData, which is 7 (not 0)
     // Since configVersion (7) < CurrentVersion (13), it checks for migration
     // But since old and current storage are same type, no migration occurs
-    // And since configVersion is NOT 0, initData() is also not called
 
     // Only configVersion should be checked from old storage
     expect(mockOldStorage.getStoreValue).toHaveBeenCalledWith(StorageKey.ConfigVersion)
     expect(mockOldStorage.getAllStoreKeys).not.toHaveBeenCalled()
     expect(mockOldStorage.setStoreValue).not.toHaveBeenCalled()
 
-    // No initData() because configVersion is 7, not 0
-    expect(initData).not.toHaveBeenCalled()
 
     // Data is already accessible through sqliteData
     expect(sqliteData[StorageKey.ConfigVersion]).toBe(JSON.stringify(7))
@@ -818,7 +791,6 @@ describe('migrateStorage test', () => {
 
   it('should NOT migrate from file storage when desktop configVersion >= 12 (prevent duplicate migration bug)', async () => {
     const { getOldVersionStorages } = await import('@/platform/storages')
-    const { initData } = await import('@/setup/init_data')
 
     // Desktop platform already set in beforeEach
 
@@ -875,7 +847,6 @@ describe('migrateStorage test', () => {
     expect(localforageData['session:current-session']).toBeDefined()
     expect(localforageData['session:old-session']).toBeUndefined()
 
-    expect(initData).not.toHaveBeenCalled()
   })
 
   it('upgrades provider settings for more sessions than the row repository cache can retain', async () => {

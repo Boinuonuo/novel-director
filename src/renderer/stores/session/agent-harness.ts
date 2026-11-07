@@ -1,4 +1,5 @@
 import { createMemoryToolContext, type MemoryToolContext } from '@chatbox/core/application/memory'
+import type { NovelContextSourcePort } from '@chatbox/core/novel'
 import type { SessionContextBeforeTarget, SessionHeader } from '@chatbox/core/ports'
 import { buildAgentPersonaPrompt, buildMemoriesSection } from '@shared/agent-persona/prompt'
 import { buildContext, flattenToolCallPartsToText } from '@shared/context'
@@ -56,6 +57,7 @@ import { getCopilotMemorySelection } from '@/stores/copilotStore'
 import { SESSION_ATTACHMENT_RAG_LOG_PREFIX } from '../../../shared/session-attachment-rag/logging'
 import { createAttachmentResolver } from './attachment-resolver'
 import { applyLegacyToolFallback } from './legacy-tool-fallback'
+import { prepareNovelScaffold } from './novel-scaffold'
 import { getOCRModel, ocrImagesInMessages } from './ocr-helper'
 import { resolveSessionPromptContextSnapshot } from './prompt-context-snapshot'
 import { buildToolsForSession } from './tools-builder'
@@ -98,6 +100,9 @@ export interface PrepareAgentGenerationHarnessOptions {
   compactionPoints?: CompactionPoint[]
   preserveLastPromptMessageToolCalls?: boolean
   attachmentResolver?: AttachmentResolver
+  /** Where a long-form session (`settings.novelMode`) reads its records. Unused otherwise. */
+  novelContext?: NovelContextSourcePort
+  pathMessageIds?: readonly string[]
   sideEffects?: AgentGenerationSideEffects
   sandboxProviderFactory?: () => SandboxProvider | null
   isPro?: () => boolean
@@ -383,6 +388,23 @@ export async function prepareAgentGenerationHarness(
     instructions = `${buildMemoriesSection(promptContextSnapshot.memories, { includeToolGuidance: memoryToolsAvailable })}${instructions}`
   }
 
+  const novelScaffold = settings.novelMode
+    ? await prepareNovelScaffold({
+        sessionId: session.id,
+        settings,
+        globalSettings,
+        model,
+        promptMsgs,
+        instructions,
+        pathMessageIds: options.pathMessageIds,
+        source: options.novelContext,
+      })
+    : undefined
+  if (novelScaffold) {
+    promptMsgs = novelScaffold.promptMsgs
+    instructions = novelScaffold.instructions
+  }
+
   // Conversation-start anchor shared by the frozen system-prompt line and the
   // time-gap reminder walk below: snapshot capture when one exists, otherwise
   // the first surface message.
@@ -445,6 +467,7 @@ export async function prepareAgentGenerationHarness(
   // trailing one as its own user turn after a resumed tool history (both
   // provider-safe shapes).
   injectedMessages = insertTimeGapReminders(injectedMessages, { anchorTimestamp: conversationStartedAt })
+  if (novelScaffold) injectedMessages = novelScaffold.addContext(injectedMessages)
 
   if (!model.isSupportSystemMessage()) {
     injectedMessages = injectedMessages.map((message) => ({

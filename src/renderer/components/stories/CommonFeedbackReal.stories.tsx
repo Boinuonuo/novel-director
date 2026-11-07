@@ -8,7 +8,6 @@ import { settingsStore } from '@/stores/settingsStore'
 import { uiStore } from '@/stores/uiStore'
 import { AssistantAvatar, SystemAvatar, UserAvatar } from '../common/Avatar'
 import { ChatboxAIErrorMessage } from '../common/ChatboxAIErrorMessage'
-import { ChatboxWelcomeCard } from '../common/ChatboxWelcomeCard'
 import { CompressionModal } from '../common/CompressionModal'
 import Divider from '../common/Divider'
 import { ErrorBoundary } from '../common/ErrorBoundary'
@@ -94,32 +93,6 @@ export const ChatboxAIErrorMessageStates: StoryObj = {
           </Text>
         </Stack>
       </Paper>
-    </Stack>
-  ),
-}
-
-export const ChatboxWelcomeCardStates: StoryObj = {
-  name: 'Chatbox welcome card login no-license and expired states',
-  parameters: {
-    uiInventoryTargets: ['src/renderer/components/common/ChatboxWelcomeCard'],
-  },
-  render: () => (
-    <Stack gap="lg">
-      <SurfaceLabel
-        title="ChatboxWelcomeCard"
-        description="Actual account/license welcome card variants shown on empty chat and image creator surfaces."
-      />
-      <Group align="stretch">
-        <Box w={260}>
-          <ChatboxWelcomeCard mode="login" pageName="storybook" />
-        </Box>
-        <Box w={260}>
-          <ChatboxWelcomeCard mode="no-license" pageName="storybook" />
-        </Box>
-        <Box w={260}>
-          <ChatboxWelcomeCard mode="expired-license" pageName="storybook" />
-        </Box>
-      </Group>
     </Stack>
   ),
 }

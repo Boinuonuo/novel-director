@@ -63,8 +63,8 @@ describe('OpenRouter image model discovery', () => {
       method: 'GET',
       headers: {
         Authorization: 'Bearer test-key',
-        'HTTP-Referer': 'https://chatboxai.app',
-        'X-Title': 'Chatbox AI',
+        'HTTP-Referer': 'https://github.com/Boinuonuo/novel-director',
+        'X-Title': 'Novel Director',
       },
       useProxy: false,
     })

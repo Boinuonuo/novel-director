@@ -2,6 +2,7 @@ import type { LanguageModelV4CallOptions } from '@ai-sdk/provider'
 import type { CallChatCompletionOptions } from '@shared/models/types'
 import type { ProviderModelInfo } from '@shared/types'
 import type { ModelDependencies } from '@shared/types/adapters'
+import { getReasoningProviderOptions } from '@shared/utils/reasoning-control'
 import type { SentryScope } from '@shared/utils/sentry_adapter'
 import { describe, expect, it, vi } from 'vitest'
 import Claude from './claude'
@@ -31,6 +32,12 @@ class TestClaude extends Claude {
 class TestOpenRouter extends OpenRouter {
   public exposeCallSettings(options: CallChatCompletionOptions) {
     return this.getCallSettings(options)
+  }
+}
+
+class TestCustomOpenAI extends CustomOpenAI {
+  public exposeChatModel(options: CallChatCompletionOptions) {
+    return this.getChatModel(options)
   }
 }
 
@@ -102,6 +109,100 @@ const supportedQwenModel = (modelId: string): ProviderModelInfo => ({
 })
 
 describe('reasoning request options', () => {
+  it.each(['low', 'medium', 'high'] as const)(
+    'sends Sonnet 5.5 %s effort through the SDK to the request body',
+    async (level) => {
+      let requestBody: Record<string, unknown> | undefined
+      const info = { ...reasoningModel('claude-sonnet-5-5'), providerId: 'claude' }
+      const claude = new TestClaude(
+        {
+          claudeApiKey: 'test-key',
+          claudeApiHost: 'https://api.anthropic.com/v1',
+          model: info,
+          customFetch: (_input, init) => {
+            requestBody = JSON.parse(String(init?.body))
+            return Promise.resolve(
+              new Response(
+                JSON.stringify({
+                  type: 'message',
+                  id: 'msg_effort',
+                  model: info.modelId,
+                  content: [{ type: 'text', text: 'ok' }],
+                  stop_reason: 'end_turn',
+                  stop_sequence: null,
+                  usage: { input_tokens: 1, output_tokens: 1 },
+                }),
+                { headers: { 'content-type': 'application/json' } }
+              )
+            )
+          },
+        },
+        createDependencies()
+      )
+      const settings = (claude as unknown as ResolveCallSettingsHarness).resolveCallSettings({
+        providerOptions: getReasoningProviderOptions('claude', info, level),
+      })
+      await claude.exposeChatModel().doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
+        maxOutputTokens: 128,
+        providerOptions: settings.providerOptions as LanguageModelV4CallOptions['providerOptions'],
+      })
+      expect(requestBody).toMatchObject({
+        model: info.modelId,
+        output_config: { effort: level },
+        thinking: { type: 'adaptive', display: 'summarized' },
+      })
+      expect(requestBody?.thinking).not.toHaveProperty('budget_tokens')
+    }
+  )
+
+  it.each(['low', 'medium', 'high'] as const)(
+    'sends Muse Spark %s effort through the custom compatible SDK',
+    async (level) => {
+      let requestBody: Record<string, unknown> | undefined
+      const deps = createDependencies()
+      deps.request.apiRequest = vi.fn(({ body }) => {
+        requestBody = JSON.parse(String(body))
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              id: 'chat_effort',
+              object: 'chat.completion',
+              created: 0,
+              model: 'muse-spark-1.3-contributor',
+              choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+              usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+            }),
+            { headers: { 'content-type': 'application/json' } }
+          )
+        )
+      })
+      const info: ProviderModelInfo = {
+        modelId: 'muse-spark-1.3-contributor',
+        apiStyle: 'openai',
+        providerId: 'custom-meta',
+      }
+      const model = new TestCustomOpenAI(
+        {
+          apiKey: 'test-key',
+          apiHost: 'https://example.com/v1',
+          apiPath: '/chat/completions',
+          model: info,
+        },
+        deps
+      )
+      const options = { providerOptions: getReasoningProviderOptions('custom-meta', info, level) }
+      const settings = (model as unknown as ResolveCallSettingsHarness).resolveCallSettings(options)
+      await model.exposeChatModel(options).doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
+        maxOutputTokens: 128,
+        providerOptions: settings.providerOptions as LanguageModelV4CallOptions['providerOptions'],
+      })
+      expect(requestBody).toMatchObject({ model: info.modelId, reasoning_effort: level })
+      expect(requestBody).not.toHaveProperty('forceReasoning')
+    }
+  )
+
   it('adds summarized display to Claude thinking requests before fetch', async () => {
     let requestBody: unknown
     const baseFetch: typeof globalThis.fetch = (_input, init) => {

@@ -6,9 +6,13 @@ import './pdfjs-globals'
 // Validate QA profile and task isolation before any Electron module can touch userData.
 import { CHATBOX_QA_PREFLIGHT } from './qa-preflight'
 
+// Must stay ahead of everything that reads userData.
+import './stable-user-data'
+
 // solve electron breaking changes, see https://www.electronjs.org/docs/latest/breaking-changes#behavior-changed-directory-databases-in-userdata-will-be-deleted
 // since 1.21.0, and this NEEDS to be the first import that initializes Electron's app module.
 import './legacy-database-migration'
+import { blockChatboxHosts } from './block-chatbox-hosts'
 import { registerFileTransferIpc } from './file-transfer-ipc'
 
 /* eslint global-require: off, no-console: off, promise/always-return: off */
@@ -86,7 +90,6 @@ const IS_HARMONY_BUILD = process.env.CHATBOX_BUILD_TARGET === 'harmony_app'
 const IS_HARMONY_KB_ENABLED = process.env.CHATBOX_HARMONY_KB_ENABLED === 'true'
 const MAIN_RUNTIME_POLICY = getMainRuntimePolicy(process.env, {
   isHarmonyBuild: IS_HARMONY_BUILD,
-  isPackaged: app.isPackaged,
 })
 if (process.platform === 'darwin' && MAIN_RUNTIME_POLICY.isQa) {
   // Must run before ready. Accessory keeps a new Electron process from
@@ -268,8 +271,8 @@ const getAssetPath = (...paths: string[]): string => {
   return path.join(RESOURCES_PATH, ...paths)
 }
 
-// 开发环境使用 chatbox-dev:// 协议，避免和正式版冲突
-const PROTOCOL_SCHEME = process.defaultApp ? 'chatbox-dev' : 'chatbox'
+// Own URL scheme so this fork never competes with an installed Chatbox for chatbox:// links.
+const PROTOCOL_SCHEME = process.defaultApp ? 'novel-director-dev' : 'novel-director'
 
 if (MAIN_RUNTIME_POLICY.registerProtocolClient) {
   if (process.defaultApp) {
@@ -405,7 +408,7 @@ function createTray() {
       accelerator: 'Command+Q',
     },
   ])
-  tray.setToolTip('Chatbox')
+  tray.setToolTip('Novel Director')
   tray.setContextMenu(contextMenu)
   tray.on('double-click', showOrHideWindow)
   return tray
@@ -450,7 +453,8 @@ if (process.env.NODE_ENV === 'production') {
 const isDebug = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true'
 
 if (isDebug) {
-  electronDebug()
+  // Keep debug shortcuts, but avoid running a docked inspector during normal writing.
+  electronDebug({ showDevTools: false })
 }
 
 // const installExtensions = async () => {
@@ -487,10 +491,11 @@ async function createWindow() {
     state.height = bounds.height
   }
 
-  const qaWindowTitle = MAIN_RUNTIME_POLICY.qaTaskId ? `[QA:${MAIN_RUNTIME_POLICY.qaTaskId}] Chatbox` : undefined
+  const qaWindowTitle = MAIN_RUNTIME_POLICY.qaTaskId ? `[QA:${MAIN_RUNTIME_POLICY.qaTaskId}] Novel Director` : undefined
 
   mainWindow = new BrowserWindow({
     show: false,
+    backgroundColor: '#242424',
     ...(qaWindowTitle ? { title: qaWindowTitle } : {}),
     // remove the default titlebar
     titleBarStyle: 'hidden',
@@ -649,6 +654,7 @@ async function createWindow() {
   mainWindow.setMenuBarVisibility(false)
 
   // 网络问题
+  blockChatboxHosts(session.defaultSession)
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -712,7 +718,9 @@ if (quitForInstallRequested) {
     }
 
     // on windows and linux, the deep link is passed in the command line
-    const url = commandLine.find((arg) => arg.startsWith('chatbox://') || arg.startsWith('chatbox-dev://'))
+    const url = commandLine.find(
+      (arg) => arg.startsWith('novel-director://') || arg.startsWith('novel-director-dev://')
+    )
 
     if (url) {
       // Deep Link 场景：总是显示并聚焦窗口
@@ -758,6 +766,9 @@ if (quitForInstallRequested) {
       await createWindow()
       startupWindowCreated = true
       await initializeSessionAttachmentRagAfterAppReady()
+      void import('./novel/index.js')
+        .then((mod) => mod.getInitPromise())
+        .catch((error) => log.error('[Novel] Failed to initialize during bootstrap:', error))
       ensureTray()
       // HarmonyOS HAP updates are distributed outside electron-updater.
       if (MAIN_RUNTIME_POLICY.startAppUpdater) {
@@ -768,7 +779,7 @@ if (quitForInstallRequested) {
       const url =
         process.platform === 'darwin'
           ? startupDeepLink
-          : process.argv.find((arg) => arg.startsWith('chatbox://') || arg.startsWith('chatbox-dev://'))
+          : process.argv.find((arg) => arg.startsWith('novel-director://') || arg.startsWith('novel-director-dev://'))
       startupDeepLink = undefined
       if (url && mainWindow) {
         // 确保窗口加载完成后再处理 Deep Link

@@ -56,7 +56,6 @@ import {
   IconJson,
   IconPlayerPlayFilled,
   type IconProps,
-  IconWorldUpload,
   IconTextWrap,
   IconTextWrapDisabled,
 } from '@tabler/icons-react'
@@ -65,6 +64,7 @@ import { visit } from 'unist-util-visit'
 import { AppTooltip as Tooltip } from '@/components/ui/tooltip'
 import { useCopied } from '@/hooks/useCopied'
 import { highlight, highlightSync, preloadLanguage, type ShikiTheme } from '../packages/shiki'
+import { rehypeTranscriptBlocks } from './chat/transcript-markdown-blocks'
 import { ScalableIcon } from './common/ScalableIcon'
 import { ImageViewer, ImageViewerItem } from './ImageViewer'
 import IconDart from './icons/Dart'
@@ -72,11 +72,13 @@ import IconJava from './icons/Java'
 import { MessageMermaid, SVGPreview } from './Mermaid'
 import { SandboxFileLink } from './message-parts/SandboxFileLink'
 import { parseSandboxLinkHref } from './message-parts/sandbox-link'
+import { rehypeNovelDialogue } from './novel/novel-dialogue'
 import { type StreamingTextSegment, useStreamingTextSegments, wrapStreamingSegmentsInHast } from './streaming-text-fade'
-import { rehypeTranscriptBlocks } from './chat/transcript-markdown-blocks'
 import './shiki-code.css'
 
 const CODE_BLOCK_COLLAPSE_LINE_THRESHOLD = 7
+const MemoizedReactMarkdown = memo(ReactMarkdown)
+const transformMarkdownUrl = (url: string) => sanitizeUrl(url)
 type RehypePlugins = NonNullable<ComponentProps<typeof ReactMarkdown>['rehypePlugins']>
 type RemarkPlugins = NonNullable<ComponentProps<typeof ReactMarkdown>['remarkPlugins']>
 type CodeNodeData = NonNullable<Code['data']> & { hProperties?: Record<string, unknown> }
@@ -134,6 +136,7 @@ function Markdown(props: {
   hiddenCodeCopyButton?: boolean
   className?: string
   generating?: boolean
+  novelDialogue?: boolean
   forceColorScheme?: 'light' | 'dark'
   onCodeCopy?: () => void
   onPreviewWebpage?: () => void
@@ -148,6 +151,7 @@ function Markdown(props: {
     hiddenCodeCopyButton,
     className,
     generating,
+    novelDialogue,
     forceColorScheme,
     onCodeCopy,
     onPreviewWebpage,
@@ -170,18 +174,19 @@ function Markdown(props: {
     const plugins: RehypePlugins = [rehypeKatex]
     if (streamingSegments.length > 0) plugins.push([rehypeWrapStreamingSegments, streamingSegments])
     plugins.push([rehypeTranscriptBlocks, { sourceId: uniqueId ?? fallbackId }])
+    if (novelDialogue) plugins.push(rehypeNovelDialogue)
     return plugins
-  }, [streamingSegments, uniqueId, fallbackId])
+  }, [streamingSegments, uniqueId, fallbackId, novelDialogue])
 
   return (
     <ImageViewer>
-      <ReactMarkdown
+      <MemoizedReactMarkdown
         className={`break-words [overflow-wrap:anywhere] ${className || ''}`}
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}
         // react-markdown's default defaultUrlTransform will incorrectly encode query parameters in URLs (e.g. & becomes &amp;)
         // Use sanitizeUrl here to avoid that and to prevent XSS attacks
-        urlTransform={(url) => sanitizeUrl(url)}
+        urlTransform={transformMarkdownUrl}
         components={useMemo(
           () => ({
             // biome-ignore lint/suspicious/noExplicitAny: react-markdown code component props are loosely typed
@@ -246,7 +251,7 @@ function Markdown(props: {
         )}
       >
         {processedChildren}
-      </ReactMarkdown>
+      </MemoizedReactMarkdown>
     </ImageViewer>
   )
 }
@@ -663,10 +668,6 @@ const BlockCode = memo(
     const shikiTheme: ShikiTheme = colorScheme !== 'light' ? 'one-dark-pro' : 'one-light'
     const languageName = useMemo(() => language.toUpperCase(), [language])
     const isRenderableCode = useMemo(() => isRenderableCodeLanguage(language), [language])
-    const canDeploy = useMemo(
-      () => isRenderableCode && String(children).trim().length > 0,
-      [children, isRenderableCode]
-    )
 
     const icon = useMemo(() => CodeIcons[languageName] || IconCode, [languageName])
 
@@ -691,20 +692,6 @@ const BlockCode = memo(
         }).catch(() => null)
       },
       [children, uniqueId, sessionId]
-    )
-
-    const onClickDeploy = useCallback(
-      (event: React.MouseEvent) => {
-        event.stopPropagation()
-        event.preventDefault()
-        if (!canDeploy) {
-          return
-        }
-        // 应投放侧要求改触发点为分享按钮。但注意现在语义上是 mismatch 的
-        onPreviewWebpage?.()
-        NiceModal.show('vibedrop-publish', { html: String(children), uniqueId, sessionId }).catch(() => null)
-      },
-      [canDeploy, children, uniqueId, sessionId, onPreviewWebpage]
     )
 
     const needCollapse = useMemo(
@@ -782,14 +769,6 @@ const BlockCode = memo(
                 <Tooltip label={t('Preview')} withArrow openDelay={1000}>
                   <ActionIcon variant="transparent" color="chatbox-tertiary" size={18} onClick={onClickArtifact}>
                     <IconPlayerPlayFilled size={14} />
-                  </ActionIcon>
-                </Tooltip>
-              )}
-
-              {canDeploy && (
-                <Tooltip label={t('Publish Webpage')} withArrow openDelay={1000}>
-                  <ActionIcon variant="transparent" color="chatbox-tertiary" size={18} onClick={onClickDeploy}>
-                    <IconWorldUpload size={14} />
                   </ActionIcon>
                 </Tooltip>
               )}

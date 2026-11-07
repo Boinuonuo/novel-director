@@ -21,8 +21,8 @@ describe('defaults', () => {
     expect(result.messageLayout).toBe('bubble')
   })
 
-  it('settings() returns allowReportingAndTracking as true', () => {
-    expect(settings().allowReportingAndTracking).toBe(true)
+  it('settings() returns allowReportingAndTracking as false, so nothing is reported to Chatbox', () => {
+    expect(settings().allowReportingAndTracking).toBe(false)
   })
 
   it('uses default interface colors for legacy settings', () => {
@@ -110,14 +110,7 @@ describe('defaults', () => {
   })
 
   it('getDefaultPrompt() returns expected string', () => {
-    expect(getDefaultPrompt()).toBe('You are a helpful assistant.')
-  })
-
-  it('chatSessionSettings() returns provider and modelId', () => {
-    const result: SessionSettings = chatSessionSettings()
-
-    expect(result.provider).toBe(ModelProviderEnum.ChatboxAI)
-    expect(result.modelId).toBe('chatboxai-4')
+    expect(getDefaultPrompt()).toContain('讨论伙伴')
   })
 
   it('pictureSessionSettings() returns provider, modelId, dalleStyle, imageGenerateNum', () => {

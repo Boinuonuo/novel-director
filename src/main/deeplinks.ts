@@ -2,7 +2,7 @@ import type { BrowserWindow } from 'electron'
 import log from 'electron-log/main'
 
 export function handleDeepLink(mainWindow: BrowserWindow, link: string) {
-  const normalizedLink = link.replace(/^chatbox-dev:\/\//, 'chatbox://')
+  const normalizedLink = link.replace(/^novel-director(-dev)?:\/\//, 'chatbox://')
   const url = new URL(normalizedLink)
 
   log.info('🔗 Parsed URL:', { hostname: url.hostname, pathname: url.pathname })

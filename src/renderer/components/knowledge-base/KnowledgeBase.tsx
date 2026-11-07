@@ -14,7 +14,6 @@ import { SettingsListItem, SettingsPage, SettingsSection } from '@/components/se
 import { AppTooltip as Tooltip } from '@/components/ui/tooltip'
 import { useProviders } from '@/hooks/useProviders'
 import { navigateToSettings } from '@/modals/settings-navigation'
-import * as remote from '@/packages/remote'
 import { toastError } from '@/packages/toast'
 import platform from '@/platform'
 import { useAuthInfoStore } from '@/stores/authInfoStore'
@@ -29,7 +28,6 @@ import {
   KnowledgeBaseFormActions,
   KnowledgeBaseModelSelectors,
   KnowledgeBaseNameInput,
-  KnowledgeBaseProviderModeSelect,
 } from './KnowledgeBaseForm'
 
 interface ModelPillProps {
@@ -135,7 +133,7 @@ const KnowledgeBasePage: React.FC = () => {
   const [deleteConfirmKb, setDeleteConfirmKb] = useState<(Partial<KnowledgeBase> & { id: number }) | null>(null)
   const [isUnsupportedPlatform, setIsUnsupportedPlatform] = useState(false)
 
-  const [chatboxAIModels, setChatboxAIModels] = useState<{
+  const [chatboxAIModels] = useState<{
     embedding: string
     vision: string
     rerank: string
@@ -169,13 +167,6 @@ const KnowledgeBasePage: React.FC = () => {
 
   const [newProviderMode, setNewProviderMode] = useState<'chatbox-ai' | 'custom'>('custom')
 
-  useEffect(() => {
-    if (canUseChatboxAIProvider) {
-      setNewProviderMode('chatbox-ai')
-    } else {
-      setNewProviderMode('custom')
-    }
-  }, [canUseChatboxAIProvider])
 
   const { providers } = useProviders()
 
@@ -302,21 +293,6 @@ const KnowledgeBasePage: React.FC = () => {
     void checkPlatform()
   }, [])
 
-  // Fetch Chatbox AI models configuration
-  useEffect(() => {
-    const fetchChatboxAIModels = async () => {
-      try {
-        const config = await remote.getRemoteConfig('knowledge_base_models')
-        if (config.knowledge_base_models) {
-          setChatboxAIModels(config.knowledge_base_models)
-        }
-      } catch (error) {
-        toastError(t('Failed to fetch Chatbox AI models config, Error: {{error}}', { error: error }))
-      }
-    }
-    void fetchChatboxAIModels()
-  }, [t])
-
   const createKb = async () => {
     if (!newKbName) return
 
@@ -361,7 +337,7 @@ const KnowledgeBasePage: React.FC = () => {
 
       // Reset form
       setNewKbName('')
-      setNewProviderMode('chatbox-ai')
+      setNewProviderMode('custom')
       setNewEmbeddingModel(null)
       setNewRerankModel(null)
       setNewVisionModel(null)
@@ -444,12 +420,6 @@ const KnowledgeBasePage: React.FC = () => {
       <Modal opened={showCreate} onClose={() => setShowCreate(false)} title={t('Create Knowledge Base')} centered>
         <Stack gap="md">
           <KnowledgeBaseNameInput value={newKbName} onChange={setNewKbName} autoFocus />
-
-          <KnowledgeBaseProviderModeSelect
-            value={newProviderMode}
-            onChange={setNewProviderMode}
-            isChatboxAIDisabled={!canUseChatboxAIProvider}
-          />
 
           {newProviderMode === 'chatbox-ai' ? (
             <KnowledgeBaseChatboxAIInfo hasError={!chatboxAIModels} />
@@ -551,7 +521,7 @@ const KnowledgeBasePage: React.FC = () => {
               size="xs"
               variant="light"
               leftSection={<IconLogin size={14} />}
-              onClick={() => navigateToSettings('chatbox-ai')}
+              onClick={() => navigateToSettings('/provider')}
             >
               {t('Log in to Chatbox AI')}
             </Button>

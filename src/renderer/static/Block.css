@@ -188,3 +188,34 @@ html[data-theme="dark"] {
     transform: rotate(360deg);
   }
 }
+
+/* A chapter reads as prose on the page, not as a chat bubble. */
+.novel-chapter {
+  width: 100%;
+  background: transparent !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.novel-chapter .msg-content {
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'SimSun', serif;
+  font-size: 1.0625rem;
+  line-height: 1.95;
+  letter-spacing: 0.02em;
+}
+
+.novel-chapter .msg-content p {
+  margin-top: 0.9em;
+  margin-bottom: 0.9em;
+}
+
+/* Blue ink by day, violet by night, distinguishes speech from narration. */
+:root {
+  --novel-dialogue-color: #2563eb;
+}
+[data-mantine-color-scheme='dark'] {
+  --novel-dialogue-color: #c69bef;
+}
+.novel-dialogue {
+  color: var(--novel-dialogue-color);
+}

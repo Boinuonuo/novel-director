@@ -66,21 +66,6 @@ export const ModalRegistryStates: StoryObj = {
   ),
 }
 
-export const AppStoreRatingStates: StoryObj = {
-  name: 'App Store rating modal rate now and maybe later actions',
-  parameters: {
-    uiInventoryTargets: ['src/renderer/modals/AppStoreRating'],
-  },
-  render: () => (
-    <ModalPreview
-      title="AppStoreRating"
-      description="Actual App Store rating prompt with icon, rating CTA, and later action."
-    >
-      <OpenModal loadModal={() => import('@/modals/AppStoreRating').then((module) => module.default)} />
-    </ModalPreview>
-  ),
-}
-
 export const AgentModeRewardClaimSuccessStates: StoryObj = {
   name: 'Agent Mode limited-time reward success',
   parameters: {
@@ -212,24 +197,6 @@ export const JsonViewerStates: StoryObj = {
   ),
 }
 
-export const VibedropPublishStates: StoryObj = {
-  name: 'VibeDrop publish modal visibility and success states',
-  parameters: {
-    uiInventoryTargets: ['src/renderer/modals/VibedropPublish'],
-  },
-  render: () => (
-    <ModalPreview
-      title="VibedropPublish"
-      description="VibeDrop publish modal: visibility choice (link-only/public) and the published URL success state with copy and open actions."
-    >
-      <OpenModal
-        loadModal={() => import('@/modals/VibedropPublish').then((module) => module.default)}
-        props={{ html: '<!doctype html><title>Chatbox demo</title><h1>Hello</h1>', uniqueId: 'story-demo' }}
-      />
-    </ModalPreview>
-  ),
-}
-
 export const ModelEditStates: StoryObj = {
   name: 'Model edit modal existing chat model capability states',
   parameters: {
@@ -254,39 +221,6 @@ export const ModelEditStates: StoryObj = {
           },
         }}
       />
-    </ModalPreview>
-  ),
-}
-
-export const ReportContentStates: StoryObj = {
-  name: 'Report content modal type and detail states',
-  parameters: {
-    uiInventoryTargets: ['src/renderer/modals/ReportContent'],
-  },
-  render: () => (
-    <ModalPreview
-      title="ReportContent"
-      description="Actual report content modal with content id, report type selector, details textarea, cancel, and submit action."
-    >
-      <OpenModal
-        loadModal={() => import('@/modals/ReportContent').then((module) => module.default)}
-        props={{ contentId: 'img-item-story-0001' }}
-      />
-    </ModalPreview>
-  ),
-}
-
-export const WelcomeStates: StoryObj = {
-  name: 'Welcome modal setup provider and later states',
-  parameters: {
-    uiInventoryTargets: ['src/renderer/modals/Welcome'],
-  },
-  render: () => (
-    <ModalPreview
-      title="Welcome"
-      description="Actual first-run welcome modal with app identity, value bullets, setup provider CTA, and setup-later action."
-    >
-      <OpenModal loadModal={() => import('@/modals/Welcome').then((module) => module.default)} />
     </ModalPreview>
   ),
 }

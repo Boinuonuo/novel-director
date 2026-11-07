@@ -25,7 +25,6 @@ import { RouteComponent as SettingsAppIconRouteComponent } from '@/routes/settin
 import { RouteComponent as SettingsAppearanceRouteComponent } from '@/routes/settings/appearance'
 import { RouteComponent as SettingsArchiveRouteComponent } from '@/routes/settings/archive'
 import { RouteComponent as SettingsChatRouteComponent } from '@/routes/settings/chat'
-import { RouteComponent as SettingsChatboxAiRouteComponent } from '@/routes/settings/chatbox-ai'
 import { RouteComponent as SettingsContextRouteComponent } from '@/routes/settings/context'
 import { RouteComponent as SettingsDataRouteComponent } from '@/routes/settings/data'
 import { RouteComponent as SettingsDefaultModelsRouteComponent } from '@/routes/settings/default-models'
@@ -35,7 +34,6 @@ import { RouteComponent as SettingsHotkeysRouteComponent } from '@/routes/settin
 import { RouteComponent as SettingsIndexRouteComponent } from '@/routes/settings/index'
 import { RouteComponent as SettingsMcpRouteComponent } from '@/routes/settings/mcp'
 import { RouteComponent as SettingsProviderProviderIdRouteComponent } from '@/routes/settings/provider/$providerId'
-import { RouteComponent as SettingsProviderChatboxAiRouteComponent } from '@/routes/settings/provider/chatbox-ai'
 import { RouteComponent as SettingsProviderIndexRouteComponent } from '@/routes/settings/provider/index'
 import { RouteComponent as SettingsProviderRouteRouteComponent } from '@/routes/settings/provider/route'
 import { SettingsRoot } from '@/routes/settings/route'
@@ -51,12 +49,6 @@ const RootRoute = createRootRoute({
 const SettingsIndexRoute = createRoute({
   component: SettingsIndexRouteComponent,
   path: '/settings/',
-  getParentRoute: () => RootRoute,
-})
-
-const SettingsChatboxAiRoute = createRoute({
-  component: SettingsChatboxAiRouteComponent,
-  path: '/settings/chatbox-ai',
   getParentRoute: () => RootRoute,
 })
 
@@ -174,27 +166,16 @@ const SettingsProviderIndexRoute = createRoute({
   getParentRoute: () => SettingsProviderRouteRoute,
 })
 
-const SettingsProviderChatboxAiRoute = createRoute({
-  component: SettingsProviderChatboxAiRouteComponent,
-  path: '/chatbox-ai',
-  getParentRoute: () => SettingsProviderRouteRoute,
-})
-
 const SettingsProviderProviderIdRoute = createRoute({
   component: SettingsProviderProviderIdRouteComponent,
   path: '/$providerId',
   getParentRoute: () => SettingsProviderRouteRoute,
 })
 
-SettingsProviderRouteRoute.addChildren([
-  SettingsProviderIndexRoute,
-  SettingsProviderChatboxAiRoute,
-  SettingsProviderProviderIdRoute,
-])
+SettingsProviderRouteRoute.addChildren([SettingsProviderIndexRoute, SettingsProviderProviderIdRoute])
 
 const routeTree = RootRoute.addChildren([
   SettingsIndexRoute,
-  SettingsChatboxAiRoute,
   SettingsGeneralRoute,
   SettingsAppearanceRoute,
   SettingsDataRoute,

@@ -5,7 +5,7 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DiagnosticLogsRow } from '@/components/settings/DataSections'
 import { isValidProxyAddress } from '@/components/settings/proxy-address'
-import { SettingRow, SettingSwitchRow, SettingsPage, SettingsSection } from '@/components/settings/SettingsLayout'
+import { SettingRow, SettingsPage, SettingsSection } from '@/components/settings/SettingsLayout'
 import { useFieldDraft } from '@/hooks/useFieldDraft'
 import platform from '@/platform'
 import { settingsStore, useSettingsStore } from '@/stores/settingsStore'
@@ -122,8 +122,6 @@ function ProxyRow() {
 
 export function RouteComponent() {
   const { t } = useTranslation()
-  const allowReportingAndTracking = useSettingsStore((s) => s.allowReportingAndTracking)
-  const setSettings = useSettingsStore((s) => s.setSettings)
 
   return (
     <SettingsPage title={t('Advanced')} description={t('Network, diagnostics and privacy.')}>
@@ -132,15 +130,6 @@ export function RouteComponent() {
       </SettingsSection>
       <SettingsSection title={t('Diagnostics & privacy')}>
         <DiagnosticLogsRow />
-        <SettingSwitchRow
-          id="error-reporting"
-          label={t('Error Reporting')}
-          description={t(
-            'Chatbox respects your privacy and only uploads anonymous error data and events when necessary. You can change your preferences at any time in the settings.'
-          )}
-          checked={allowReportingAndTracking}
-          onChange={(checked) => setSettings({ allowReportingAndTracking: checked })}
-        />
       </SettingsSection>
     </SettingsPage>
   )

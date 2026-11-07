@@ -87,20 +87,4 @@ describe('provider API request routing', () => {
     expect(mocks.desktopDirectRequest).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps the relay behavior for remote web targets', async () => {
-    mocks.platform.type = 'web'
-    const response = new Response('ok')
-    const rendererFetch = vi.fn().mockResolvedValue(response)
-    vi.stubGlobal('fetch', rendererFetch)
-
-    await apiRequest.get('https://provider.example/v1/models', {}, { useProxy: true, retry: 0 })
-
-    expect(rendererFetch).toHaveBeenCalledWith(
-      'https://cors-proxy.chatboxai.app/proxy-api/completions',
-      expect.objectContaining({ method: 'GET' })
-    )
-    const headers = rendererFetch.mock.calls[0][1].headers as Headers
-    expect(headers.get('CHATBOX-TARGET-URI')).toBe('https://provider.example/v1/models')
-    expect(mocks.desktopDirectRequest).not.toHaveBeenCalled()
-  })
 })

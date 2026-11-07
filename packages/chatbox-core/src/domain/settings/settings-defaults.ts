@@ -2,7 +2,12 @@ import { getDefaultInterfaceColors } from '../../theme-colors'
 import { DEFAULT_ENABLED_BUILTIN_SKILL_NAMES } from '../../types/skills'
 import { type DocumentParserConfig, type Settings, Theme } from './settings-schema'
 
-export const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant.'
+/** For a plain chat. A new novel starts from the novel prompt instead. */
+export const DEFAULT_SYSTEM_PROMPT =
+  '你是一位知识广博、表达清楚的助手，也是作者构思故事时的讨论伙伴。用对方使用的语言回答，先说结论再展开，不确定的地方如实说明。'
+
+/** The stock prompt of earlier versions. A setting still holding it moves to the new default. */
+export const LEGACY_DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant.'
 
 export interface SettingsHostDefaults {
   isDesktopLike: boolean
@@ -39,7 +44,8 @@ export function createDefaultSettings(): Settings {
     fontSize: 14,
     spellCheck: true,
     defaultPrompt: DEFAULT_SYSTEM_PROMPT,
-    allowReportingAndTracking: true,
+    // Reports and analytics go to Chatbox's servers, so this fork never sends them.
+    allowReportingAndTracking: false,
     hasExpiredLicense: false,
     chatboxAIDesktopPromptDismissed: false,
     enableMarkdownRendering: true,
@@ -77,7 +83,7 @@ export function createDefaultSettings(): Settings {
     },
     extension: {
       webSearch: {
-        provider: 'build-in',
+        provider: 'bing',
         tavilyApiKey: '',
         bochaApiKey: '',
         queritApiKey: '',

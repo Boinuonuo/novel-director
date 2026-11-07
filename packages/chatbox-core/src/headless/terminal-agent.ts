@@ -89,7 +89,7 @@ function compactResult(result: HeadlessCommandResult, budget: number): HeadlessC
 }
 
 function terminalSystemPrompt(workingDirectory: string | undefined): string {
-  return `You are Chatbox running as a headless terminal agent.
+  return `You are Novel Director running as a headless terminal agent.
 
 Complete the user's task in the provided isolated environment. Use run_command to inspect the environment, modify files, run tests, and verify the result. Continue until the task is actually complete; do not only explain what the user could do.
 

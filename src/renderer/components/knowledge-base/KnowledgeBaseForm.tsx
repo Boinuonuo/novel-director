@@ -223,12 +223,6 @@ const PARSER_OPTIONS: { value: DocumentParserType; label: string; description: s
       'Uses built-in document parsing feature, supports common file types. Free usage, no compute points will be consumed.',
   },
   {
-    value: 'chatbox-ai',
-    label: 'Chatbox AI',
-    description:
-      'Cloud-based document parsing service, supports PDF, Office files, EPUB and many other file types. Consumes compute points.',
-  },
-  {
     value: 'mineru',
     label: 'MinerU',
     description: 'Third-party cloud parsing service, supports PDF and most Office files. Requires API token.',

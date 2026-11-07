@@ -19,9 +19,7 @@ export async function prepareRemoteMCPTools({
   if (!enabled || !model.isSupportToolUse('agent')) return { tools: {}, unavailable: [] }
   signal.throwIfAborted()
   const configs = [
-    ...settings.mcp.enabledBuiltinServers
-      .map((id) => getBuiltinServerConfig(id, settings.licenseKey))
-      .filter((config) => config !== null),
+    ...settings.mcp.enabledBuiltinServers.map((id) => getBuiltinServerConfig(id)).filter((config) => config !== null),
     ...settings.mcp.servers.filter((config) => config.enabled),
   ]
   await Promise.all(

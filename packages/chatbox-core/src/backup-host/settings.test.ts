@@ -110,8 +110,6 @@ describe('backup settings commit', () => {
       { ...host, isDesktopLike: false }
     )
     expect(host.settings.getSettings()).toMatchObject({
-      licenseActivationMethod: 'manual',
-      memorizedManualLicenseKey: 'fixture-license',
       extension: { documentParser: { type: 'chatbox-ai' } },
     })
     expect(host.read()).toMatchObject({ __version: SETTINGS_PERSIST_VERSION, providers: imported.providers })

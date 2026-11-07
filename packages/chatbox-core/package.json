@@ -41,6 +41,7 @@
     "./utils/session-sort": "./src/utils/session-sort.ts",
     "./application/image-generation": "./src/application/image-generation/index.ts",
     "./application/memory": "./src/application/memory/index.ts",
+    "./novel": "./src/novel/index.ts",
     "./mcp": "./src/mcp/index.ts",
     "./mcp/schema": "./src/mcp/schema.ts",
     "./headless": "./src/headless/index.ts",

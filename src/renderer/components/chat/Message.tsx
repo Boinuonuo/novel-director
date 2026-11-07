@@ -1,4 +1,5 @@
 import { isRetryableToolCallStep } from '@chatbox/core/generation'
+import { stripTrailingOptions } from '@chatbox/core/novel'
 import {
   getSessionActionGate,
   IDLE_SESSION_LOCK_STATE,
@@ -31,7 +32,6 @@ import {
   IconDotsVertical,
   IconInfoCircle,
   IconLoader2,
-  IconMessageReport,
   IconPencil,
   IconPhotoPlus,
   IconPlayerStopFilled,
@@ -51,6 +51,7 @@ import { trackJkClickEvent } from '@/analytics/jk'
 import { JK_EVENTS, JK_PAGE_NAMES } from '@/analytics/jk-events'
 import { rendererApplication } from '@/app/renderer-application'
 import Markdown from '@/components/Markdown'
+import { NovelOptions } from '@/components/novel/NovelOptions'
 import StreamingTextFade from '@/components/StreamingTextFade'
 import { AppTooltip as Tooltip1 } from '@/components/ui/tooltip'
 import { useMessageGenerationStop } from '@/hooks/useGenerationStop'
@@ -116,6 +117,10 @@ interface Props {
   id?: string
   sessionId: string
   sessionType: SessionType
+  /** This conversation is a novel, so an assistant message is a chapter. */
+  novel?: boolean
+  /** The newest message of the conversation. */
+  latest?: boolean
   msg: Message
   className?: string
   collapseThreshold?: number // 文本长度阀值, 超过这个长度则会被折叠
@@ -410,10 +415,6 @@ const _Message: FC<Props> = (props) => {
       }
     }
 
-  const onReport = useCallback(async () => {
-    await NiceModal.show('report-content', { contentId: getMessageText(msg) || msg.id })
-  }, [msg])
-
   const onDelMsg = useCallback(async () => {
     const shouldConfirmCacheBreak =
       confirmCacheBreakingDelete || (await shouldConfirmPromptCacheDelete?.(msg.id, 'message')) === true
@@ -480,7 +481,10 @@ const _Message: FC<Props> = (props) => {
         }
       }
     }
-    if (showWordCount && !msg.generating) {
+    if (props.novel && msg.role === 'assistant' && !msg.generating) {
+      const count = countWord(stripTrailingOptions(getMessageText(msg)))
+      tips.push({ label: t('{{count}} characters', { count }), tooltip: t('Word count') as string })
+    } else if (showWordCount && !msg.generating) {
       const wc = msg.wordCount !== undefined ? msg.wordCount : countWord(getMessageText(msg))
       tips.push({ label: `${wc} words`, tooltip: t('Word count') as string })
     }
@@ -728,15 +732,6 @@ const _Message: FC<Props> = (props) => {
         onClick: quoteMsg,
       },
       { divider: true },
-      ...(msg.role === 'assistant'
-        ? [
-            {
-              text: t('report'),
-              icon: IconMessageReport,
-              onClick: onReport,
-            },
-          ]
-        : []),
       ...(process.env.NODE_ENV === 'development'
         ? [
             {
@@ -764,7 +759,6 @@ const _Message: FC<Props> = (props) => {
     [
       t,
       msg.role,
-      onReport,
       quoteMsg,
       onDelMsg,
       onViewMessageJson,
@@ -840,6 +834,7 @@ const _Message: FC<Props> = (props) => {
       <div
         data-testid={TestId.message.content}
         className={cn(
+          props.novel && msg.role === 'assistant' && 'novel-chapter',
           isBubbleLayout
             ? 'inline-block max-w-full min-w-0'
             : msg.role === 'assistant'
@@ -917,6 +912,7 @@ const _Message: FC<Props> = (props) => {
                           enableLaTeXRendering={enableLaTeXRendering}
                           enableMermaidRendering={enableMermaidRendering}
                           generating={msg.generating}
+                          novelDialogue={props.novel && msg.role === 'assistant'}
                           onCodeCopy={onCodeCopy}
                           onPreviewWebpage={onPreviewWebpage}
                         >
@@ -1070,7 +1066,7 @@ const _Message: FC<Props> = (props) => {
           ))}
         </Box>
         {props.sessionType === 'picture' && contentParts.filter((p) => p.type === 'image').length > 0 && (
-          <PictureGallery pictures={contentParts.filter((p) => p.type === 'image')} onReport={onReport} />
+          <PictureGallery pictures={contentParts.filter((p) => p.type === 'image')} />
         )}
         {isBubbleLayout && errorTipsElement}
         <Modal
@@ -1126,6 +1122,9 @@ const _Message: FC<Props> = (props) => {
         )}
         {leadingStatuses && leadingStatuses.length > 0 && <div className="mt-2">{statusElements}</div>}
       </div>
+      {props.novel && props.latest && msg.role === 'assistant' && !msg.generating && (
+        <NovelOptions text={getMessageText(msg)} />
+      )}
     </>
   )
 

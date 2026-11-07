@@ -196,6 +196,8 @@ storybook-static
 
 todo.md
 plan.md
+# Private development notes, kept out of the repository
+*.local.md
 tmp-*.*
 tmp_*.*
 /docs/superpowers/plans

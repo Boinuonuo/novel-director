@@ -246,13 +246,13 @@ export class ChatboxAIAPIError extends BaseError {
       name: 'system_error',
       code: 20019,
       i18nKey:
-        'An error occurred while processing your request. Please try again later. If this error continues, please send an email to hi@chatboxai.com for support.',
+        'An error occurred while processing your request. Please try again later. If this error continues, please report it on GitHub.',
     },
     unknown: {
       name: 'unknown',
       code: 20020,
       i18nKey:
-        'An unknown error occurred. Please try again later. If this error continues, please send an email to hi@chatboxai.com for support.',
+        'An unknown error occurred. Please try again later. If this error continues, please report it on GitHub.',
     },
     model_not_support_web_browsing: {
       name: 'model_not_support_web_browsing',

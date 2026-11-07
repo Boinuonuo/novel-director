@@ -133,14 +133,6 @@ export default function useShortcut() {
       }
       return
     }
-    // 创建新图片会话
-    if (isShortcutPressed(e, shortcuts.newPictureChat)) {
-      e.preventDefault()
-      router.navigate({
-        to: '/image-creator',
-      })
-      return
-    }
     if (e.code === 'Tab' && ctrlKey && !shift) {
       switchToNext()
     }

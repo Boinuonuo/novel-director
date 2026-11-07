@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { buildChatboxAIGroupViews } from '@/components/ModelSelectorV2/chatboxCatalog'
 import { getChatboxAIModelList, getModelManifest, uploadAndCreateUserFile, uploadAndParseUserFile } from './remote'
 
 const { afetch, upload, setBlob } = vi.hoisted(() => ({ afetch: vi.fn(), upload: vi.fn(), setBlob: vi.fn() }))
@@ -79,9 +78,6 @@ describe('remote model catalog compatibility', () => {
     expect(result.models.responses.apiStyle).toBe('openai-responses')
     expect(result.models.priced).toMatchObject({ access: { available: false }, costLevel: 'high' })
     expect(result.imageModels).toEqual([image])
-    expect(
-      buildChatboxAIGroupViews({ catalog: result, search: '', expandedAdvanced: false, collapsedGroupIds: new Set() })
-    ).toEqual([expect.objectContaining({ modelIds: ['chat', 'responses', 'legacy'], total: 3 })])
   })
 
   it('returns empty collections when every model is incompatible', async () => {

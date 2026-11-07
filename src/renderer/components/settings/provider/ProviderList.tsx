@@ -67,7 +67,7 @@ export function ProviderList({ providers, onAddProvider }: ProviderListProps) {
           {sortedProviders.map((provider) => (
             <Link
               key={provider.id}
-              to={provider.id === 'chatbox-ai' ? `/settings/provider/chatbox-ai` : `/settings/provider/$providerId`}
+              to="/settings/provider/$providerId"
               params={{ providerId: provider.id }}
               className={'block no-underline'}
               data-testid={TestId.settings.providerItem}

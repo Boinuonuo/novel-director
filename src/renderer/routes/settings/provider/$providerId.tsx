@@ -1,7 +1,6 @@
 import NiceModal from '@ebay/nice-modal-react'
 import {
   ActionIcon,
-  Anchor,
   Badge,
   Button,
   Flex,
@@ -33,7 +32,6 @@ import {
   IconCircleCheck,
   IconDiscount2,
   IconExternalLink,
-  IconHelpCircle,
   IconLogin,
   IconLogout,
   IconPlus,
@@ -61,7 +59,7 @@ import { useOAuthProviders } from '@/hooks/useOAuthProviders'
 import { enrichModelsFromRegistry, forceRefreshRegistry, useModelRegistryVersion } from '@/packages/model-registry'
 import { getModelSettingUtil } from '@/packages/model-setting-utils'
 import platform from '@/platform'
-import { settingsStore, useLanguage, useProviderSettings, useSettingsStore } from '@/stores/settingsStore'
+import { settingsStore, useProviderSettings, useSettingsStore } from '@/stores/settingsStore'
 import { add as addToast } from '@/stores/toastActions'
 import { type ModelTestState, testModelCapabilities } from '@/utils/model-tester'
 
@@ -168,8 +166,6 @@ function ProviderSettings({ providerId }: { providerId: string }) {
   const { t } = useTranslation()
   const setSettings = useSettingsStore((state) => state.setSettings)
   const customProviders = useSettingsStore((state) => state.customProviders)
-
-  const language = useLanguage()
 
   const baseInfo = [...SystemProviders(), ...(customProviders || [])].find((p) => p.id === providerId)
 
@@ -484,12 +480,7 @@ function ProviderSettings({ providerId }: { providerId: string }) {
   const isSystemManagedModelList = false
   const showApiKey =
     !isOAuthOnlyProvider &&
-    ![
-      ModelProviderEnum.Ollama,
-      ModelProviderEnum.LMStudio,
-      ModelProviderEnum.Bedrock,
-      '',
-    ].includes(baseInfo.id)
+    ![ModelProviderEnum.Ollama, ModelProviderEnum.LMStudio, ModelProviderEnum.Bedrock, ''].includes(baseInfo.id)
   const showNetworkCompatibility =
     baseInfo.isCustom ||
     baseInfo.id === ModelProviderEnum.Ollama ||
@@ -511,25 +502,7 @@ function ProviderSettings({ providerId }: { providerId: string }) {
       key={baseInfo.id}
       titleOnTouch
       title={t(baseInfo.name)}
-      description={
-        (baseInfo.description || (baseInfo.isCustom && language === 'zh-Hans')) && (
-          <>
-            {baseInfo.description && t(baseInfo.description)}
-            {baseInfo.isCustom && language === 'zh-Hans' && (
-              <Anchor
-                href="https://docs.chatboxai.app/guides/providers"
-                target="_blank"
-                rel="noopener"
-                fz={13}
-                className="inline-flex items-center gap-1"
-              >
-                <ScalableIcon icon={IconHelpCircle} size={14} />
-                {t('Setup guide')}
-              </Anchor>
-            )}
-          </>
-        )
-      }
+      description={baseInfo.description && <>{baseInfo.description && t(baseInfo.description)}</>}
       action={
         <Flex gap={4} align="center">
           {providerWebsite && (

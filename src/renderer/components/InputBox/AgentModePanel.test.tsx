@@ -609,37 +609,6 @@ describe('AgentModePanel memory', () => {
     expect(mocks.settingsState.setSettings).toHaveBeenCalledWith({ memoryEnabled: false })
   })
 
-  test('shows the Copilot source and manages its memories through Copilot settings', async () => {
-    mocks.myCopilots.push({ id: 'cp1', name: 'Tutor', prompt: 'persona' })
-    mocks.copilotMemoryOwners.push({ id: 'cp1', name: 'Tutor' })
-    mocks.listCopilotMemoriesMock.mockResolvedValue([{ id: 'm1', content: 'Learner level is B1', createdAt: 1 }])
-    const onClose = vi.fn()
-    renderPanel({ draftCopilotId: 'cp1', onClose })
-
-    const memoryRow = screen.getByRole('button', { name: /^Memory/ })
-    expect(memoryRow.textContent).toContain('Copilot Memory')
-    fireEvent.mouseEnter(memoryRow)
-
-    expect(
-      screen.getByText('All chats with this Copilot use its shared memory when on, or follow Global Memory when off.')
-    ).toBeTruthy()
-    expect(
-      screen.queryByText('You must create a copilot and use it in a conversation to use Copilot Memory.')
-    ).toBeNull()
-    expect(screen.getByRole('switch', { name: 'Copilot Memory' })).toHaveProperty('checked', true)
-    expect(screen.queryByRole('switch', { name: 'Global Memory' })).toBeNull()
-    await vi.waitFor(() => {
-      expect(screen.getByText('1 saved')).toBeTruthy()
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Manage memories' }))
-    expect(onClose).toHaveBeenCalled()
-    expect(mocks.niceModalShowMock).toHaveBeenCalledWith(
-      'copilot-settings',
-      expect.objectContaining({ mode: 'edit', copilot: expect.objectContaining({ id: 'cp1' }) })
-    )
-  })
-
   test('keeps a copilot without its own memory on the global list for counts and management', async () => {
     mocks.myCopilots.push({ id: 'cp1', name: 'Tutor', prompt: 'persona' })
     mocks.listMemoriesMock.mockResolvedValue([{ id: 'gm1', content: 'Global fact', createdAt: 1 }])

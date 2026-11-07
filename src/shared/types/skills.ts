@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const DEFAULT_ENABLED_BUILTIN_SKILL_NAMES = ['chatbox-product-info', 'vibedrop'] as const
+export const DEFAULT_ENABLED_BUILTIN_SKILL_NAMES = [] as const
 
 // ===== Skill Source Types =====
 

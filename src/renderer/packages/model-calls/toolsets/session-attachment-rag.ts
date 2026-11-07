@@ -6,9 +6,7 @@ import {
 import type { SessionAttachmentQueryPlan } from '@shared/types'
 import { validatedToolSchema } from '@shared/validated-tool-schema'
 import type { ToolSet } from 'ai'
-import * as remote from '@/packages/remote'
 import platform from '@/platform'
-import * as settingActions from '@/stores/settingActions'
 import { settingsStore } from '@/stores/settingsStore'
 import { asRecord, contentOrErrorText, numberField, stringField, toTextModelOutput } from './model-output'
 
@@ -72,17 +70,11 @@ function formatParents(output: unknown): string {
 export async function getToolSet(attachmentIds: number[]) {
   const controller = platform.getSessionAttachmentRagController()
   const attachments = await controller.getAttachments(attachmentIds)
-  const sessionRagConfig = await remote
-    .getSessionRagConfig({ licenseKey: settingActions.getLicenseKey() || undefined })
-    .catch(() => undefined)
-  const remoteRerankModel = sessionRagConfig?.capabilities?.session_attachment_rerank
-    ? sessionRagConfig?.models?.rerank
-    : undefined
   const defaultRerankModel = settingsStore.getState().defaultRerankModel
   const defaultRerankModelString = defaultRerankModel
     ? `${defaultRerankModel.provider}:${defaultRerankModel.model}`
     : undefined
-  const rerankModel = defaultRerankModelString || remoteRerankModel
+  const rerankModel = defaultRerankModelString
   const readyAttachments = attachments.filter((attachment) => attachment.status === 'ready')
   const indexingAttachments = attachments.filter(
     (attachment) => attachment.status === 'pending' || attachment.status === 'indexing'

@@ -138,22 +138,22 @@ describe('getChatboxQaRuntime', () => {
 })
 
 describe('getMainRuntimePolicy', () => {
-  it('preserves current global integrations for a normal packaged build', () => {
-    expect(getMainRuntimePolicy({}, { isHarmonyBuild: false, isPackaged: true })).toEqual({
+  it('keeps global integrations for a normal packaged build, but never starts the upstream updater', () => {
+    expect(getMainRuntimePolicy({}, { isHarmonyBuild: false })).toEqual({
       createTray: true,
       isQa: false,
       qaTaskId: null,
       registerGlobalShortcuts: true,
       registerProtocolClient: true,
       requestSingleInstanceLock: true,
-      startAppUpdater: true,
+      startAppUpdater: false,
     })
   })
 
   it('preserves development multi-instance behavior and Harmony updater behavior', () => {
-    expect(getMainRuntimePolicy({}, { isHarmonyBuild: true, isPackaged: false })).toMatchObject({
+    expect(getMainRuntimePolicy({}, { isHarmonyBuild: true })).toMatchObject({
       isQa: false,
-      requestSingleInstanceLock: false,
+      requestSingleInstanceLock: true,
       startAppUpdater: false,
     })
   })
@@ -162,7 +162,7 @@ describe('getMainRuntimePolicy', () => {
     expect(
       getMainRuntimePolicy(
         { CHATBOX_QA: '1', CHATBOX_QA_TASK_ID: '20260811_real-task-01' },
-        { isHarmonyBuild: false, isPackaged: true }
+        { isHarmonyBuild: false }
       )
     ).toEqual({
       createTray: false,

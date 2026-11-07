@@ -1,5 +1,4 @@
 export const WEB_SEARCH_PROVIDERS = [
-  { value: 'build-in', label: 'Chatbox AI' },
   { value: 'bing', label: 'Bing Search' },
   { value: 'tavily', label: 'Tavily' },
   { value: 'bocha', label: 'BoCha' },
@@ -7,4 +6,5 @@ export const WEB_SEARCH_PROVIDERS = [
   { value: 'searxng', label: 'SearXNG' },
 ] as const
 
-export type WebSearchProviderValue = (typeof WEB_SEARCH_PROVIDERS)[number]['value']
+/** `build-in` was Chatbox's own search. It is no longer offered, and settings move off it. */
+export type WebSearchProviderValue = (typeof WEB_SEARCH_PROVIDERS)[number]['value'] | 'build-in'

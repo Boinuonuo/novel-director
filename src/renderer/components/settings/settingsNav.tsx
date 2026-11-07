@@ -16,7 +16,6 @@ import {
   IconPalette,
   type IconProps,
   IconRobotFace,
-  IconSparkles,
   IconStack2,
   IconTool,
   IconWand,
@@ -84,7 +83,6 @@ export function getSettingsNavGroups(): SettingsNavGroup[] {
   ]
 
   return [
-    { title: 'Account', items: [{ key: 'chatbox-ai', label: 'Chatbox AI', noTranslate: true, icon: IconSparkles }] },
     {
       title: 'Models',
       items: [
@@ -114,7 +112,7 @@ export function getSettingsNavGroups(): SettingsNavGroup[] {
           : [{ key: 'hotkeys' as const, label: 'Keyboard Shortcuts', icon: IconKeyboard }]),
         { key: 'data', label: 'Data & Backup', icon: IconDatabase, testId: TestId.settings.navData },
         { key: 'advanced', label: 'Advanced', icon: IconTool, testId: TestId.settings.navAdvanced },
-        { key: 'about', label: 'About & Updates', icon: IconInfoCircle, testId: TestId.settings.navAbout },
+        { key: 'about', label: 'About', icon: IconInfoCircle, testId: TestId.settings.navAbout },
       ],
     },
   ]

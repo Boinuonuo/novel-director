@@ -1,10 +1,9 @@
 import { MAX_CHAT_IMAGE_ATTACHMENTS } from '@chatbox/core/application/attachments'
-import { listPendingPauseInteractions } from '@chatbox/core/message-approval'
 import { getSubmitAvailability } from '@chatbox/core/session/action-gates'
 import { isActionAvailableInMode, resolveSessionMode } from '@chatbox/core/session/mode-policy'
 import NiceModal from '@ebay/nice-modal-react'
 import { autoUpdate, computePosition, flip, offset, shift, size } from '@floating-ui/dom'
-import { ActionIcon, Box, Button, Flex, Loader, Menu, Stack, Text, Textarea, UnstyledButton } from '@mantine/core'
+import { ActionIcon, Box, Button, Flex, Loader, Menu, Stack, Text, UnstyledButton } from '@mantine/core'
 import { useViewportSize } from '@mantine/hooks'
 import { TestId } from '@shared/automation/testids'
 import {
@@ -32,7 +31,7 @@ import {
 } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useAtom, useAtomValue } from 'jotai'
+import { useAtom } from 'jotai'
 import { pick } from 'lodash'
 import type React from 'react'
 import {
@@ -121,9 +120,11 @@ import { ScalableIcon } from '../common/ScalableIcon'
 import Disclaimer from '../Disclaimer'
 import { ModelProviderIcon } from '../icons/ModelProviderIcon'
 import ModelSelectorV2 from '../ModelSelectorV2'
+import { NovelStatusRow } from '@/components/novel/NovelStatusRow'
 import AgentModeButton from './AgentModeButton'
 import { FileMiniCard, getParserTypeLabel, ImageMiniCard } from './Attachments'
 import { getAgentModeUIState } from './agentModeState'
+import { NovelModeButton } from './NovelModeButton'
 import { ComposerSettingsMenu } from './ComposerSettingsMenu'
 import { ImageUploadInput } from './ImageUploadInput'
 import {
@@ -1588,11 +1589,8 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
             align="center"
           >
             <Text size="sm" c="chatbox-tertiary" ta="center">
-              {t('This image session is read-only. Please use the new Image Creator for image generation.')}
+              {t('This image session is read-only.')}
             </Text>
-            <Button variant="light" size="xs" onClick={() => navigate({ to: '/image-creator' })}>
-              {t('Go to Image Creator')}
-            </Button>
           </Stack>
         </Box>
       )
@@ -1679,6 +1677,8 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
                 </Box>,
                 document.body
               )}
+
+            {currentSessionId && !isNewSession && <NovelStatusRow sessionId={currentSessionId} />}
 
             {/* Work Mode status row: approval policy + working directories, always visible
                 above the input with their own in-place menus (mirrors the mode panel). */}
@@ -2007,6 +2007,12 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
                   providerOptions={effectiveProviderOptions}
                   iconSize={toolbarIconSize}
                   onChange={(level) => void handleReasoningLevelChange(level)}
+                />
+
+                <NovelModeButton
+                  sessionId={currentSessionId || 'new'}
+                  iconSize={toolbarIconSize}
+                  compact={isSmallScreen}
                 />
 
                 <AgentModeButton

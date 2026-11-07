@@ -1,25 +1,24 @@
+import { Text } from '@mantine/core'
 import type { Message } from '@shared/types'
-import { useSettingsStore } from '@/stores/settingsStore'
-import { AgentModeRewardError } from './AgentModeRewardError'
 import { GenericMessageError } from './GenericMessageError'
 import { resolveMessageErrorPresentation } from './message-error-presentation'
-import { QuotaExhaustedError } from './QuotaExhaustedError'
 
 export default function MessageErrTips(props: {
   msg: Message
   sessionId?: string
   onRetry?: () => void | Promise<void>
 }) {
-  const { msg, sessionId, onRetry } = props
-  const licensePlan = useSettingsStore((state) => state.licenseDetail?.plan)
-  const presentation = resolveMessageErrorPresentation(msg, { licensePlan })
+  const { msg, onRetry } = props
+  const presentation = resolveMessageErrorPresentation(msg, {})
 
   if (!msg.error) return null
-  if (presentation.kind === 'quota') {
-    return <QuotaExhaustedError msg={msg} sessionId={sessionId} licensePlan={licensePlan} presentation={presentation} />
-  }
-  if (presentation.kind === 'agent-mode-reward') {
-    return <AgentModeRewardError msg={msg} sessionId={sessionId} onRetry={onRetry} />
+  // These two came from Chatbox's own service, so a message that still has one just shows its text.
+  if (presentation.kind === 'quota' || presentation.kind === 'agent-mode-reward') {
+    return (
+      <Text size="sm" c="chatbox-error">
+        {msg.error}
+      </Text>
+    )
   }
   return <GenericMessageError msg={msg} presentation={presentation} onRetry={onRetry} />
 }

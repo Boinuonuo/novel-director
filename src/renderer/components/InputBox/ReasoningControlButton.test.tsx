@@ -48,25 +48,27 @@ function renderButton(reasoningEffort: 'low' | 'medium' | 'high' = 'high') {
 }
 
 describe('ReasoningControlButton', () => {
-  test('shows Astra thinking controls and lets the user choose high effort', async () => {
-    const onChange = vi.fn()
-    render(
-      <MantineProvider>
-        <ReasoningControlButton
-          provider={ModelProviderEnum.OpenAIResponses}
-          model={{ modelId: 'gpt-6-astra' }}
-          iconSize={22}
-          onChange={onChange}
-        />
-      </MantineProvider>
-    )
+  test.each([
+    { provider: ModelProviderEnum.OpenAIResponses, modelId: 'gpt-6-astra', apiStyle: 'openai-responses' },
+    { provider: ModelProviderEnum.Claude, modelId: 'claude-sonnet-5-5', apiStyle: 'anthropic' },
+    { provider: 'custom-meta', modelId: 'muse-spark-1.3-contributor', apiStyle: 'openai' },
+  ] as const)(
+    'shows $modelId thinking controls and lets the user choose high effort',
+    async ({ provider, modelId, apiStyle }) => {
+      const onChange = vi.fn()
+      render(
+        <MantineProvider>
+          <ReasoningControlButton provider={provider} model={{ modelId, apiStyle }} iconSize={22} onChange={onChange} />
+        </MantineProvider>
+      )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Thinking: Default' }))
-    await waitFor(() => expect(screen.getByTestId(TestId.reasoning.level('high'))).toBeTruthy())
-    fireEvent.click(screen.getByTestId(TestId.reasoning.level('high')))
-    expect(onChange).toHaveBeenCalledWith('high')
-    expect(screen.queryByTestId(TestId.reasoning.level('off'))).toBeNull()
-  })
+      fireEvent.click(screen.getByRole('button', { name: 'Thinking: Default' }))
+      await waitFor(() => expect(screen.getByTestId(TestId.reasoning.level('high'))).toBeTruthy())
+      fireEvent.click(screen.getByTestId(TestId.reasoning.level('high')))
+      expect(onChange).toHaveBeenCalledWith('high')
+      expect(screen.queryByTestId(TestId.reasoning.level('off'))).toBeNull()
+    }
+  )
 
   test('shows a state icon instead of the level text', () => {
     const view = renderButton()

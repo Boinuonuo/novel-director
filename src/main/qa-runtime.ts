@@ -38,7 +38,6 @@ export type ChatboxQaPreflight = {
 
 export type MainRuntimePolicyOptions = {
   isHarmonyBuild: boolean
-  isPackaged: boolean
 }
 
 export type MainRuntimePolicy = {
@@ -163,7 +162,9 @@ export function getMainRuntimePolicy(env: ChatboxQaEnvironment, options: MainRun
     qaTaskId: qaRuntime.taskId,
     registerGlobalShortcuts: !qaRuntime.enabled,
     registerProtocolClient: !qaRuntime.enabled,
-    requestSingleInstanceLock: options.isPackaged && !qaRuntime.enabled,
-    startAppUpdater: !options.isHarmonyBuild && !qaRuntime.enabled,
+    // Also in development: two instances on one profile fight over its storage, and the second cannot start.
+    requestSingleInstanceLock: !qaRuntime.enabled,
+    // Disabled in this fork: the upstream update feed would replace it with stock Chatbox.
+    startAppUpdater: false,
   }
 }

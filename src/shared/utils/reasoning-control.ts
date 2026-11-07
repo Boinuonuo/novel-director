@@ -154,7 +154,13 @@ const OPENAI_NO_EFFORT_PARAM_MODELS = [/(?:^|\/)o1-(?:preview|mini)(?:[.-]|$)/i]
 // down to 'minimal'. Match any dotted gpt-5.x so future versions default to 'none'.
 const OPENAI_NONE_EFFORT_MODELS = [/(?:^|\/)gpt-5\.[1-9]\d*(?:[.-]|$)/i]
 const CLAUDE_EFFORT_MODELS = [/(?:^|\/)claude-opus-4-5(?:[.-]|$)/i]
-const CLAUDE_ADAPTIVE_EFFORT_MODELS = [/(?:^|\/)claude-opus-4-(?:7|8)(?:[.-]|$)/i, /(?:^|\/)claude-opus-5(?:[.-]|$)/i]
+const CLAUDE_ADAPTIVE_EFFORT_MODELS = [
+  /(?:^|\/)claude-opus-4-(?:7|8)(?:[.-]|$)/i,
+  /(?:^|\/)claude-(?:opus|sonnet)-5(?:[.-]|$)/i,
+  /(?:^|\/)claude-haiku-5[.-]5(?:[.-]|$)/i,
+]
+// These models reject the ordinary disable switch even through OpenRouter.
+const CLAUDE_MANDATORY_THINKING_MODELS = [/(?:^|\/)claude-(?:opus|sonnet)-5[.-]5(?:[.-]|$)/i]
 const CLAUDE_BUDGET_MODELS = [
   /(?:^|\/)claude-3-7-sonnet/i,
   /(?:^|\/)claude-sonnet-4/i,
@@ -162,6 +168,8 @@ const CLAUDE_BUDGET_MODELS = [
   /(?:^|\/)claude-opus-4(?![.-]?5)(?![.-]?7)(?![.-]?8)/i,
 ]
 const QWEN_THINKING_MODELS = [/^qwen3/i, /(?:^|\/)qwen3/i]
+// Spark Open uses a different API; only match the hosted Spark/version/contributor IDs.
+const MUSE_SPARK_EFFORT_MODEL = /(?:^|\/)muse-spark(?:-\d+(?:\.\d+)*)?(?:-contributor)?$/i
 const GROK_REASONING_EFFORT_MODELS = [
   /(?:^|\/)grok-4\.3(?:-latest)?$/i,
   /(?:^|\/)grok-4(?:-latest|-0709)?$/i,
@@ -183,6 +191,9 @@ function supportsExplicitDisable(
   effectiveProvider: ModelProvider | undefined,
   modelId: string
 ): boolean {
+  if (MUSE_SPARK_EFFORT_MODEL.test(modelId) || matchesAny(modelId, CLAUDE_MANDATORY_THINKING_MODELS)) {
+    return false
+  }
   if (effectiveProvider === ModelProviderEnum.Gemini && !canDisableGoogleThinking(modelId)) {
     return false
   }
@@ -260,6 +271,13 @@ export function normalizeClaudeReasoningOptions(
  * reject the minimal/none off values.
  */
 export function isOpenAIReasoningEffortSupported(modelId: string, effort: string): boolean {
+  if (MUSE_SPARK_EFFORT_MODEL.test(modelId)) {
+    // Meta accepts minimal but never none. The contributor tier also rejects max.
+    return (
+      ['minimal', 'low', 'medium', 'high', 'xhigh'].includes(effort) ||
+      (effort === 'max' && !/-contributor$/i.test(modelId))
+    )
+  }
   // 'max' is a DeepSeek-only effort; OpenAI models reject it. The DeepSeek
   // Responses path branches off before this check, so it is never affected.
   if (effort === 'max') return false
@@ -628,7 +646,10 @@ export function getReasoningControlCapabilities(
   if (model && isOpenAICompatibleApiStyle(provider, model) && isDeepSeekThinkingModel(model)) {
     return { supported: true, kind: isDeepSeekReasoningEffortModel(modelId) ? 'deepseek-effort' : 'toggle' }
   }
-  if (isOpenAIStyleEffectiveProvider(effectiveProvider) && isGptEffortModel(modelId)) {
+  if (
+    isOpenAIStyleEffectiveProvider(effectiveProvider) &&
+    (isGptEffortModel(modelId) || MUSE_SPARK_EFFORT_MODEL.test(modelId))
+  ) {
     return { supported: true, kind: 'openai-effort' }
   }
   if (
@@ -669,7 +690,10 @@ function getApiStyleDisabledReason(
     }
   }
 
-  if (isGptEffortModel(modelId) && !isOpenAIStyleEffectiveProvider(effectiveProvider)) {
+  if (
+    (isGptEffortModel(modelId) || MUSE_SPARK_EFFORT_MODEL.test(modelId)) &&
+    !isOpenAIStyleEffectiveProvider(effectiveProvider)
+  ) {
     return 'requires-openai-api-style'
   }
 
@@ -1025,6 +1049,7 @@ function isOpenRouterReasoningModel(model: ProviderModelInfo | null | undefined)
   if (!model?.modelId) return false
   if (isDeepSeekReasoningModel(model.modelId)) return true
   if (isGptEffortModel(model.modelId)) return true
+  if (MUSE_SPARK_EFFORT_MODEL.test(model.modelId)) return true
   return matchesAny(model.modelId, [
     ...CLAUDE_ADAPTIVE_EFFORT_MODELS,
     ...CLAUDE_EFFORT_MODELS,

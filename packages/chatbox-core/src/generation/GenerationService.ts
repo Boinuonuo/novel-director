@@ -222,6 +222,8 @@ export interface GenerationPreparationRequest<TContext> {
   providerOptions?: SessionSettings['providerOptions']
   preserveLastPromptMessageToolCalls: boolean
   compactionPoints?: CompactionPoint[]
+  /** Identities of the causal path, including messages omitted from `messages`. */
+  pathMessageIds?: readonly string[]
   lockAgentMode: (reason: Exclude<AgentModeLockReason, null>) => void
 }
 
@@ -732,6 +734,7 @@ export class GenerationService<TContext> {
         providerOptions: reasoningProviderOptions,
         preserveLastPromptMessageToolCalls: Boolean(options?.appendToMessage),
         compactionPoints: source.compactionPoints,
+        pathMessageIds: source.pathMessageIds,
         lockAgentMode: (reason) => {
           void host.lockAgentMode(sessionId, reason)
         },

@@ -22,7 +22,6 @@ import {
   BUILT_IN_BROWSER_SKILL_NAME,
   builtInBrowserSkillBody,
 } from '@/packages/model-calls/toolsets/built-in-browser-skill'
-import { buildChatboxCliToolSet } from '@/packages/model-calls/toolsets/chatbox-cli'
 import { buildCodeExecutionTools } from '@/packages/model-calls/toolsets/code-execution'
 import { buildFileTools, fileToolSetDescription } from '@/packages/model-calls/toolsets/file'
 import { buildFilesystemTools } from '@/packages/model-calls/toolsets/filesystem'
@@ -386,14 +385,6 @@ In long conversations, earlier tool results may be compressed or summarized. Put
     : ''
   if (includeAgentTools) {
     instructions += options.workspaceInstructionsOverride ?? (await buildWorkspaceInstructions(userWorkingDirectories))
-    instructions += `
-## Git
-When you create a Git branch, prefix its name with \`chatbox/\` (for example \`chatbox/fix-login-retry\`).
-
-When you create a Git commit that includes code changes, append this exact trailer to the commit message:
-
-\`Co-authored-by: Chatbox <chatbox@chatboxai.com>\`
-`
   }
   if (sessionAttachmentRagToolSet) {
     instructions += sessionAttachmentRagToolSet.description
@@ -611,14 +602,6 @@ When you create a Git commit that includes code changes, append this exact trail
       codeExecution !== undefined
     )
     tools.load_skill = buildLoadSkillTool(options, toolsetSkills)
-    if (enabledSkills.some((skill) => skill.name === 'chatbox-product-info')) {
-      const chatboxCliToolSet = buildChatboxCliToolSet({
-        sessionId: options.sessionId,
-        onUsed: options.onAgentModeActivated,
-      })
-      instructions += chatboxCliToolSet.description
-      tools = { ...tools, ...chatboxCliToolSet.tools }
-    }
     if (legacyCommandTools) tools.user_exec = buildUserExecTool(options)
     if (codeExecution) {
       tools.install_skill = buildInstallSkillTool(options)

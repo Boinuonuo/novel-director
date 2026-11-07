@@ -37,7 +37,6 @@ describe('SettingsService', () => {
     const defaults = createDefaultSettings()
     const storage = new MemorySettingsStorage({
       ...defaults,
-      licenseKey: 'legacy-license',
       __version: 1,
     })
     const service = new SettingsService(storage, { isDesktopLike: false })
@@ -46,14 +45,12 @@ describe('SettingsService', () => {
 
     expect(first).toBe(second)
     expect(storage.read).toHaveBeenCalledOnce()
-    expect(first.licenseActivationMethod).toBe('manual')
     expect(storage.write).not.toHaveBeenCalled()
 
     service.updateSettings({ language: first.language })
     await service.flushPersistence()
     expect(storage.write).toHaveBeenCalledWith(
       expect.objectContaining({
-        licenseKey: 'legacy-license',
         __version: SETTINGS_PERSIST_VERSION,
       })
     )

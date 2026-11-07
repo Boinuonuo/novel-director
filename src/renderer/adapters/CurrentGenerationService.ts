@@ -40,6 +40,7 @@ import {
   setSessionAgentMode,
 } from '@/stores/session/agent-mode'
 import { wakeQueuedUserMessages } from '@/stores/session/message-queue'
+import { getNovelContextSource } from '@/stores/session/novel-context-registry'
 import {
   insertMessageAfter,
   modifyMessage,
@@ -273,6 +274,8 @@ const dependencies: GenerationServiceDependencies<ModelDependencies> = {
         model: request.model,
         dependencies: request.modelContext,
         attachmentResolver: request.attachments,
+        novelContext: getNovelContextSource(),
+        pathMessageIds: request.pathMessageIds,
         knowledgeBase: request.knowledgeBase,
         webBrowsing: request.webBrowsing,
         agentModeValue: request.agentModeValue,
@@ -360,6 +363,7 @@ const dependencies: GenerationServiceDependencies<ModelDependencies> = {
     afterMessageGenerated: (sessionId, message) => {
       appleAppStore.tickAfterMessageGenerated()
       markSessionReplyCompleted(sessionId, message)
+      getNovelContextSource()?.onChapterFinished?.(sessionId)
     },
     afterMessageFailed: (sessionId, message) => markSessionReplyFailed(sessionId, message),
     now: Date.now,

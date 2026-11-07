@@ -35,7 +35,6 @@ import platform from '@/platform'
 import type { Storage } from '@/platform/interfaces'
 import { getOldVersionStorages } from '@/platform/storages'
 import WebPlatform from '@/platform/web_platform'
-import { initData } from '@/setup/init_data'
 import storage, { StorageKey } from '@/storage'
 import { createSessionMetaRecordsFromLegacyList } from '@/utils/session-utils'
 import * as defaults from '../../shared/defaults'
@@ -226,8 +225,6 @@ async function migrateStorage() {
     log.info(`migrateStorage: no old storage found, and config version is 0, initializing data`)
     // 这是第一次运行应用，直接将ConfigVersion设置为CurrentVersion，跳过后续的数据迁移
     await storage.setItemNow(StorageKey.ConfigVersion, CurrentVersion)
-    // 初始化默认会话
-    await initData()
   }
 }
 

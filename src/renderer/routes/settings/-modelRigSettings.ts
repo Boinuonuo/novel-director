@@ -144,11 +144,11 @@ export function applyAllPresetsExtension(settings: Settings): Settings['extensio
     ...settings.extension,
     documentParser: {
       ...settings.extension.documentParser,
-      type: 'chatbox-ai',
+      type: 'local',
     },
     webSearch: {
       ...settings.extension.webSearch,
-      provider: 'build-in',
+      provider: 'bing',
     },
   }
 }

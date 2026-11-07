@@ -1,0 +1,41 @@
+Novel Director
+Copyright (C) 2026 Boinuonuo
+
+Novel Director is a desktop client for writing long novels together with AI.
+It is free software, licensed under the GNU General Public License, version 3.
+It comes with ABSOLUTELY NO WARRANTY. See the LICENSE file for the full terms.
+
+Source code: https://github.com/Boinuonuo/novel-director
+
+
+Origin
+
+Novel Director is a modified version of Chatbox Community Edition, by the Chatbox
+authors, released under GPL-3.0:
+
+    https://github.com/chatboxai/chatbox
+
+It was derived from commit d17455c of that project. The full history of the
+original work is kept in this repository, and the original authors keep the
+copyright in their work.
+
+
+Modifications
+
+Modified since 2026-11-06. The main changes are:
+
+- Added novel mode: background chapter records, tiered story context, a story
+  memory panel the author can edit, chapter options and prose presentation.
+- Removed Chatbox's account, Chatbox AI service, example conversations,
+  onboarding, update checks, remote configuration and error reporting from the
+  product.
+- Replaced the name, logo and application identity.
+
+The difference from that commit shows every change.
+
+
+Names
+
+"Chatbox" and any related names and logos belong to their respective owners.
+Novel Director is an independent project. It is not affiliated with or endorsed
+by the Chatbox project or its authors.

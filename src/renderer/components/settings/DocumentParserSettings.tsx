@@ -13,7 +13,6 @@ const ALL_PARSER_OPTIONS: {
   desktopOnly?: boolean
 }[] = [
   { value: 'local', label: 'Local' },
-  { value: 'chatbox-ai', label: 'Chatbox AI' },
   { value: 'mineru', label: 'MinerU', desktopOnly: true }, // Only available on desktop (requires IPC)
 ]
 

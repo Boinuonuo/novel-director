@@ -1,5 +1,6 @@
 import { Button, Chip, Group, SegmentedControl, Text, Textarea } from '@mantine/core'
 import { TestId } from '@shared/automation/testids'
+import { NOVEL_DEFAULT_PROMPT } from '@chatbox/core/novel'
 import { getDefaultPrompt } from '@shared/defaults'
 import type { Settings } from '@shared/types'
 import { MAX_TOOL_CALLS_BEFORE_CONFIRMATION } from '@shared/utils/tool-call-limit-pause'
@@ -55,6 +56,7 @@ export function RouteComponent() {
   const promptIsDefault = (settings.defaultPrompt ?? '') === defaultPrompt
   const defaultsUntouched =
     promptIsDefault &&
+    settings.novelDefaultPrompt === undefined &&
     settings.maxContextMessageCount === undefined &&
     settings.temperature === undefined &&
     settings.topP === undefined &&
@@ -82,6 +84,7 @@ export function RouteComponent() {
             onClick={() =>
               setSettings({
                 defaultPrompt,
+                novelDefaultPrompt: undefined,
                 maxContextMessageCount: undefined,
                 temperature: undefined,
                 topP: undefined,
@@ -129,6 +132,42 @@ export function RouteComponent() {
                   size="compact-xs"
                   className="self-start"
                   onClick={() => setSettings({ defaultPrompt })}
+                >
+                  {t('Reset to Default')}
+                </Button>
+              )}
+            </div>
+          )}
+        />
+        <SettingRow
+          id="novel-prompt"
+          label={t('Novel prompt')}
+          description={t(
+            'What a new novel starts from, used instead of the system prompt above. Keep the rule that each chapter opens with a heading, which is how the background tells chapters from talk.'
+          )}
+          controlLayout="block"
+          control={(fieldId) => (
+            <div className="flex flex-col gap-1.5">
+              <Textarea
+                id={fieldId}
+                aria-label={t('Novel prompt') ?? undefined}
+                value={settings.novelDefaultPrompt ?? NOVEL_DEFAULT_PROMPT}
+                autosize
+                minRows={3}
+                maxRows={14}
+                onChange={(e) => setSettings({ novelDefaultPrompt: e.currentTarget.value })}
+              />
+              {(settings.novelDefaultPrompt ?? NOVEL_DEFAULT_PROMPT) === NOVEL_DEFAULT_PROMPT ? (
+                <Text fz={12} c="chatbox-tertiary">
+                  {t('Default')}
+                </Text>
+              ) : (
+                <Button
+                  variant="subtle"
+                  color="chatbox-gray"
+                  size="compact-xs"
+                  className="self-start"
+                  onClick={() => setSettings({ novelDefaultPrompt: undefined })}
                 >
                   {t('Reset to Default')}
                 </Button>

@@ -1,4 +1,3 @@
-import NiceModal from '@ebay/nice-modal-react'
 import { Button, Divider, Flex, Group, Loader, Stack, Switch, Text } from '@mantine/core'
 import { type FC, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -106,11 +105,7 @@ export function useAgentMemorySettings({
   const openCopilotSettings = useCallback(() => {
     if (!savedCopilot) return
     onClose()
-    void NiceModal.show('copilot-settings', {
-      copilot: savedCopilot,
-      mode: 'edit',
-      onSave: updateCopilot,
-    })
+    void navigateToSettings('/agent')
   }, [onClose, savedCopilot, updateCopilot])
 
   const settingsPath = savedCopilot && effectiveMemorySource === 'copilot' ? undefined : '/agent'

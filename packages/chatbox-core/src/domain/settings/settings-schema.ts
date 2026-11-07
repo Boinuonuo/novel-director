@@ -219,6 +219,11 @@ export const SessionSettingsSchema = GlobalSessionSettingsSchema.extend({
   // See resolveReasoningProviderOptions.
   providerOptionsByModel: z.record(z.string(), ProviderOptionsSchema).optional().catch(undefined),
   autoCompaction: z.boolean().optional().catch(undefined),
+  // Long-form support: background bookkeeping adds lore and a story so far to this session's
+  // requests. Without records the session behaves exactly like any other.
+  novelMode: z.boolean().optional().catch(undefined),
+  // This novel marks its chapters with a heading, so talk between chapters is not recorded as one.
+  novelHeadings: z.boolean().optional().catch(undefined),
   // Whether generation pauses for user confirmation after a run of consecutive
   // tool calls. Undefined follows the global setting; true/false override it.
   pauseOnToolCallLimit: z.boolean().optional().catch(undefined),
@@ -508,6 +513,22 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
     })
     .optional()
     .catch(undefined),
+  // The model that reasons about the world, with thinking on. Unset means the background model does it.
+  novelWorldModel: z
+    .object({
+      provider: z.string(),
+      model: z.string(),
+    })
+    .optional()
+    .catch(undefined),
+  // The model that keeps long-form sessions' records in the background. Unset means no background work.
+  novelArchivistModel: z
+    .object({
+      provider: z.string(),
+      model: z.string(),
+    })
+    .optional()
+    .catch(undefined),
   defaultEmbeddingModel: DefaultModelSelectionSchema,
   defaultRerankModel: DefaultModelSelectionSchema,
 
@@ -576,6 +597,8 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
   // disableQuickToggleShortcut?: boolean // 是否关闭快捷键切换窗口显隐（弃用，为了兼容历史数据，这个字段永远不要使用）
 
   defaultPrompt: z.string().optional(), // 新会话的默认 prompt
+  // The prompt a new novel starts from. Unset means the built-in one.
+  novelDefaultPrompt: z.string().optional(),
 
   proxy: z.string().optional(), // 代理地址
 

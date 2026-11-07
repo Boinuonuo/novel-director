@@ -1,11 +1,10 @@
-import { ActionIcon, Button, Flex, Loader, Text } from '@mantine/core'
+import { ActionIcon, Flex, Loader, Text } from '@mantine/core'
 import { Link } from '@mui/material'
 import { TestId } from '@shared/automation/testids'
 import { aiProviderNameHash } from '@shared/models'
 import type { Message } from '@shared/types'
 import { ModelProviderEnum } from '@shared/types/provider'
 import {
-  IconArrowRight,
   IconCheck,
   IconChevronDown,
   IconChevronRight,
@@ -16,8 +15,6 @@ import {
 import type React from 'react'
 import { useCallback, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { trackJkClickEvent } from '@/analytics/jk'
-import { JK_EVENTS, JK_PAGE_NAMES } from '@/analytics/jk-events'
 import { ChatboxAIErrorMessage } from '@/components/common/ChatboxAIErrorMessage'
 import { ErrorNotice } from '@/components/common/ErrorNotice'
 import classes from '@/components/common/ErrorNotice.module.css'
@@ -27,9 +24,8 @@ import { useCopied } from '@/hooks/useCopied'
 import { navigateToSettings } from '@/modals/settings-navigation'
 import { buildChatboxUrl } from '@/packages/remote'
 import { translateTexts } from '@/packages/translation'
-import platform from '@/platform'
 import * as settingActions from '@/stores/settingActions'
-import { useLanguage, useSettingsStore } from '@/stores/settingsStore'
+import { useLanguage, } from '@/stores/settingsStore'
 import type { MessageErrorPresentation } from './message-error-presentation'
 
 const MAX_CHARS = 200
@@ -241,7 +237,6 @@ export function GenericMessageError(props: {
 }) {
   const { msg, presentation, onRetry } = props
   const { t } = useTranslation()
-  const licenseKey = useSettingsStore((state) => state.licenseKey)
   const language = useLanguage()
   const [retrying, setRetrying] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -330,38 +325,6 @@ export function GenericMessageError(props: {
             onCopy={copy}
             t={t}
           />
-        </div>
-      )}
-      {!licenseKey && msg.aiProvider !== ModelProviderEnum.ChatboxAI && (
-        <div className={classes.trial}>
-          <Tooltip
-            label={t(
-              'If you have never had a license before, you can claim it after logging in on the official website.'
-            )}
-            withArrow
-            multiline
-            maw={240}
-            position="bottom-start"
-          >
-            <Button
-              variant="default"
-              size="xs"
-              radius="sm"
-              fw={400}
-              styles={{ label: { whiteSpace: 'normal', textAlign: 'start' }, root: { height: 'auto' } }}
-              leftSection={<span className={classes.trialDot} aria-hidden="true" />}
-              rightSection={<IconArrowRight size={14} />}
-              onClick={() => {
-                trackJkClickEvent(JK_EVENTS.FREE_LICENSE_CLAIM_CLICK, {
-                  pageName: JK_PAGE_NAMES.CHAT_PAGE,
-                  content: 'chat_error',
-                })
-                platform.openLink('https://chatboxai.app/login')
-              }}
-            >
-              {t('Chatbox AI free trial available')}
-            </Button>
-          </Tooltip>
         </div>
       )}
     </ErrorNotice>

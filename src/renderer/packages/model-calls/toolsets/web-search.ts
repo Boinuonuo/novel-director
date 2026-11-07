@@ -2,9 +2,7 @@ import { validatedToolSchema } from '@shared/validated-tool-schema'
 import { ChatboxAIAPIError } from '@shared/models/errors'
 import { createWebSearchTool } from '@shared/web-search-tool'
 import type { ToolSet } from 'ai'
-import * as remote from '@/packages/remote'
 import { getParseLinkProvider, webSearchExecutor } from '@/packages/web-search'
-import platform from '@/platform'
 import * as settingActions from '@/stores/settingActions'
 import { asRecord, numberField, stringField, toTextModelOutput } from './model-output'
 
@@ -77,33 +75,6 @@ export const parseLinkTool: ToolSet[string] = {
     const normalizedMaxLength = Math.min(Math.max(maxLength, 500), 50_000)
 
     const searchProvider = settingActions.getExtensionSettings().webSearch.provider
-
-    // Chatbox AI (build-in) path: licensed users use the authenticated parser; BYOK users fall back to free parser.
-    if (searchProvider === 'build-in') {
-      const licenseKey = settingActions.getLicenseKey()
-      if (licenseKey) {
-        const parsed = await remote.parseUserLinkPro({ licenseKey, url: parseInput.url, abortSignal })
-        const storedContent = await platform.getStoreBlob(parsed.storageKey)
-        if (storedContent == null) {
-          const technical = `parse_link storage blob missing for URL ${parseInput.url} (storageKey: ${parsed.storageKey})`
-          throw ChatboxAIAPIError.fromCodeName(technical, 'parse_link_failed') ?? new Error(technical)
-        }
-        return buildParseLinkResult({
-          url: parseInput.url,
-          title: parsed.title,
-          content: storedContent,
-          maxLength: normalizedMaxLength,
-        })
-      }
-
-      const freeParsed = await remote.parseUserLinkFree({ url: parseInput.url })
-      return buildParseLinkResult({
-        url: parseInput.url,
-        title: freeParsed.title,
-        content: freeParsed.text,
-        maxLength: normalizedMaxLength,
-      })
-    }
 
     // Third-party provider path (e.g. Tavily). Throws if API key missing or extraction fails.
     const provider = getParseLinkProvider()

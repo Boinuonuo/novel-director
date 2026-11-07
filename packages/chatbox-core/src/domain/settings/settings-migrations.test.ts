@@ -54,8 +54,6 @@ describe('settings migrations', () => {
 
     expect(migrated.shortcuts.inputBoxSendMessage).toBe('Command+Enter')
     expect(migrated.shortcuts.inputBoxSendMessageWithoutResponse).toBe('Ctrl+Shift+Enter')
-    expect(migrated.licenseActivationMethod).toBe('manual')
-    expect(migrated.memorizedManualLicenseKey).toBe('license-legacy')
     expect(migrated.providers?.openai).toMatchObject({
       apiKey: 'sk-openai',
       oauth: {
@@ -93,6 +91,59 @@ describe('settings migrations', () => {
     expect(migrated.extension.documentParser).toEqual({ type: 'local' })
   })
 
+  test('moves the untouched stock prompt to the new default, and keeps a written one', () => {
+    const stock = migrateSettings({ ...createDefaultSettings(), defaultPrompt: 'You are a helpful assistant.' }, 11, {
+      isDesktopLike: true,
+    })
+    expect(stock.defaultPrompt).toBe(createDefaultSettings().defaultPrompt)
+    expect(stock.defaultPrompt).toContain('讨论伙伴')
+
+    const written = migrateSettings({ ...createDefaultSettings(), defaultPrompt: '你是我的写作搭档。' }, 11, {
+      isDesktopLike: true,
+    })
+    expect(written.defaultPrompt).toBe('你是我的写作搭档。')
+  })
+
+  test('forgets Chatbox AI and everything that pointed at it', () => {
+    const migrated = migrateSettings(
+      {
+        ...createDefaultSettings(),
+        licenseKey: 'old-license',
+        hasExpiredLicense: true,
+        providers: { 'chatbox-ai': { models: [{ modelId: 'chatboxai-4' }] }, deepseek: { apiKey: 'kept' } },
+        favoritedModels: [
+          { provider: 'chatbox-ai', model: 'chatboxai-4' },
+          { provider: 'deepseek', model: 'deepseek-chat' },
+        ],
+        defaultChatModel: { provider: 'chatbox-ai', model: 'chatboxai-4' },
+        novelArchivistModel: { provider: 'deepseek', model: 'deepseek-flash' },
+        skills: { enabledSkillNames: ['chatbox-product-info', 'vibedrop', 'data-analysis'] },
+      },
+      10,
+      { isDesktopLike: true }
+    )
+
+    expect(migrated.licenseKey).toBeUndefined()
+    expect(migrated.providers).toEqual({ deepseek: { apiKey: 'kept' } })
+    expect(migrated.favoritedModels).toEqual([{ provider: 'deepseek', model: 'deepseek-chat' }])
+    expect(migrated.defaultChatModel).toBeUndefined()
+    expect(migrated.novelArchivistModel).toEqual({ provider: 'deepseek', model: 'deepseek-flash' })
+    expect(migrated.skills.enabledSkillNames).toEqual(['data-analysis'])
+  })
+
+  test('removes the built-in servers Chatbox hosted, and keeps Context7', () => {
+    const migrated = migrateSettings(
+      {
+        ...createDefaultSettings(),
+        allowReportingAndTracking: false,
+        mcp: { enabledBuiltinServers: ['fetch', 'arxiv', 'context7'], servers: [] },
+      },
+      9,
+      { isDesktopLike: true }
+    )
+    expect(migrated.mcp.enabledBuiltinServers).toEqual(['context7'])
+  })
+
   test('filters unavailable built-in state without changing custom servers', () => {
     const defaults = createDefaultSettings()
     const migrated = migrateSettings(
@@ -117,7 +168,7 @@ describe('settings migrations', () => {
       { isDesktopLike: true }
     )
 
-    expect(migrated.mcp.enabledBuiltinServers).toEqual(['fetch', 'context7'])
+    expect(migrated.mcp.enabledBuiltinServers).toEqual(['context7'])
     expect(migrated.mcp.servers).toEqual([
       expect.objectContaining({
         id: 'sequentialthinking',
@@ -146,7 +197,7 @@ describe('settings migrations', () => {
       { isDesktopLike: true }
     )
 
-    expect(migrated.mcp.enabledBuiltinServers).toEqual(['fetch', 'arxiv', 'context7'])
+    expect(migrated.mcp.enabledBuiltinServers).toEqual(['context7'])
     expect(migrated.mcp.servers).toEqual([expect.objectContaining(customServer)])
   })
 
@@ -154,7 +205,6 @@ describe('settings migrations', () => {
     const defaults = createDefaultSettings()
     const persisted = {
       ...defaults,
-      licenseKey: 'license-all-fields',
       providers: {
         openai: {
           apiKey: 'sk-all-fields',
@@ -192,9 +242,6 @@ describe('settings migrations', () => {
 
     const expected = {
       ...defaults,
-      licenseKey: 'license-all-fields',
-      licenseActivationMethod: version <= 1 ? 'manual' : undefined,
-      memorizedManualLicenseKey: version <= 1 ? 'license-all-fields' : undefined,
       providers: persisted.providers,
       customProviders: persisted.customProviders,
       shortcuts: {

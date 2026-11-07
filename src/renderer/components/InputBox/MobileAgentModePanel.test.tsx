@@ -304,22 +304,4 @@ describe('Mobile Agent Mode memory', () => {
     await waitFor(() => expect(mocks.listMemories).toHaveBeenCalledTimes(2))
   })
 
-  test('uses the existing session Copilot and closes before opening its saved settings', async () => {
-    mocks.session.copilotId = 'saved'
-    mocks.copilots = [{ id: 'saved', name: 'Tutor', prompt: '' }]
-    mocks.owners = [{ id: 'saved', name: 'Tutor' }]
-    render(panel({ sessionId: 'existing', draftCopilotId: 'other' }))
-    expect(screen.getByRole('button', { name: 'Memory' })).toHaveTextContent('Copilot Memory')
-    fireEvent.click(screen.getByRole('button', { name: 'Memory' }))
-    expect(screen.getByText('Tutor')).toBeInTheDocument()
-    fireEvent.click(await screen.findByRole('button', { name: 'Manage memories' }))
-    expect(mocks.listCopilotMemories).toHaveBeenCalledWith('saved')
-    expect(mocks.showModal).toHaveBeenCalledWith('copilot-settings', {
-      copilot: mocks.copilots[0],
-      mode: 'edit',
-      onSave: mocks.updateCopilot,
-    })
-    expect(mocks.close.mock.invocationCallOrder[0]).toBeLessThan(mocks.showModal.mock.invocationCallOrder[0])
-    expect(mocks.navigate).not.toHaveBeenCalled()
-  })
 })

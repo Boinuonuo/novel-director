@@ -351,7 +351,6 @@ describe('buildToolsForSession', () => {
     expect(result.tools.save_memory).toBeDefined()
     expect(result.instructions).toContain('## Persistent Memory')
     expect(result.instructions).not.toContain('## Workspace Instructions')
-    expect(result.instructions).not.toContain('Co-authored-by: Chatbox <chatbox@chatboxai.com>')
     expect(readWorkspaceInstructionsMock).not.toHaveBeenCalled()
     expect(discoverSkillsMock).not.toHaveBeenCalled()
     for (const name of sandboxToolNames) {
@@ -647,9 +646,6 @@ describe('buildToolsForSession', () => {
       expect(result.tools[name]).toBeUndefined()
     }
     expect(result.tools.code_execution).toBeDefined()
-    expect(result.instructions).toContain('## Git')
-    expect(result.instructions).toContain('prefix its name with `chatbox/`')
-    expect(result.instructions).toContain('Co-authored-by: Chatbox <chatbox@chatboxai.com>')
   })
 
   test('v2 command contract exposes run_command and retires legacy command tools', async () => {
@@ -913,7 +909,7 @@ describe('buildToolsForSession', () => {
     expect(result.instructions).toContain('structured file tools for host paths outside it')
   })
 
-  test('webBrowsing=true exposes parse_link when configured search provider supports it', async () => {
+  test('webBrowsing=true exposes search, and parse_link only for a provider that can read links', async () => {
     const model = createMockModel()
     const result = await buildToolsForSession(model, {
       webBrowsing: true,
@@ -922,7 +918,7 @@ describe('buildToolsForSession', () => {
     })
 
     expect(result.tools.web_search).toBeDefined()
-    expect(result.tools.parse_link).toBeDefined()
+    expect(result.tools.parse_link).toBeUndefined()
     expect(result.instructions).toContain('## Tool-use Communication')
     expect(result.instructions).toContain('one short visible sentence')
     expect(result.instructions).toContain("in the user's language")
@@ -1424,110 +1420,6 @@ describe('load_skill tool', () => {
     await expect(toModelOutput(result.tools.load_skill, { instructions: '' })).resolves.toEqual({
       type: 'text',
       value: 'Skill instructions are empty.',
-    })
-  })
-})
-
-describe('chatbox_cli tool', () => {
-  test('uses an OpenAI-compatible top-level function schema', async () => {
-    const model = createMockModel()
-    getSettingsMock.mockReturnValue({
-      skills: { enabledSkillNames: ['chatbox-product-info'] },
-    })
-
-    const result = await buildToolsForSession(model, {
-      webBrowsing: false,
-      messages: [],
-      agentMode: 'on',
-    })
-    const inputSchema = result.tools.chatbox_cli.inputSchema as unknown as {
-      jsonSchema: Record<string, unknown>
-    }
-
-    expect(inputSchema.jsonSchema).toMatchObject({
-      type: 'object',
-      properties: {
-        command: { type: 'string' },
-        argv: { type: 'array' },
-      },
-      additionalProperties: false,
-    })
-    expect(inputSchema.jsonSchema).not.toHaveProperty('oneOf')
-    expect(inputSchema.jsonSchema).not.toHaveProperty('anyOf')
-    expect(inputSchema.jsonSchema).not.toHaveProperty('allOf')
-  })
-
-  test('is available only when chatbox-product-info is enabled', async () => {
-    const model = createMockModel()
-    const options: BuildToolsOptions = {
-      webBrowsing: false,
-      messages: [],
-      agentMode: 'on',
-    }
-
-    getSettingsMock.mockReturnValueOnce({
-      skills: { enabledSkillNames: ['chatbox-product-info'] },
-    })
-    const enabled = await buildToolsForSession(model, options)
-    expect(enabled.tools.chatbox_cli).toBeDefined()
-
-    getSettingsMock.mockReturnValueOnce({
-      skills: { enabledSkillNames: ['test-skill'] },
-    })
-    const disabled = await buildToolsForSession(model, options)
-    expect(disabled.tools.chatbox_cli).toBeUndefined()
-  })
-
-  test('returns masked license status for CLI-style command', async () => {
-    const model = createMockModel()
-    const onAgentModeActivated = vi.fn()
-    settingsState.licenseKey = 'license-key-secret-1234'
-    settingsState.licenseActivationMethod = 'manual'
-    settingsState.licensePlanName = 'Chatbox AI Pro'
-
-    getSettingsMock.mockReturnValue({
-      skills: { enabledSkillNames: ['chatbox-product-info'] },
-    })
-
-    const result = await buildToolsForSession(model, {
-      webBrowsing: false,
-      messages: [],
-      agentMode: 'on',
-      onAgentModeActivated,
-    })
-    if (!result.tools.chatbox_cli.execute) throw new Error('chatbox_cli execute missing')
-
-    const executeResult = await result.tools.chatbox_cli.execute({ command: 'chatbox account status' }, {} as never)
-
-    expect(onAgentModeActivated).toHaveBeenCalledTimes(1)
-    expect(executeResult).toMatchObject({
-      licenseConfigured: true,
-      licenseKey: 'configured (...1234)',
-      activationMethod: 'manual',
-      plan: { name: 'Chatbox AI Pro' },
-    })
-    expect(JSON.stringify(executeResult)).not.toContain('license-key-secret-1234')
-  })
-
-  test('advertises the structured command hierarchy through capabilities', async () => {
-    const model = createMockModel()
-    getSettingsMock.mockReturnValue({
-      skills: { enabledSkillNames: ['chatbox-product-info'] },
-    })
-
-    const result = await buildToolsForSession(model, {
-      sessionId: 'session-1',
-      webBrowsing: false,
-      messages: [],
-      agentMode: 'on',
-    })
-    if (!result.tools.chatbox_cli.execute) throw new Error('chatbox_cli execute missing')
-
-    const executeResult = await result.tools.chatbox_cli.execute({ argv: ['capabilities'] }, {} as never)
-    expect(executeResult).toMatchObject({
-      ok: true,
-      command: 'capabilities',
-      domains: ['account', 'settings', 'chats', 'image'],
     })
   })
 })

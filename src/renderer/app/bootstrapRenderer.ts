@@ -6,12 +6,7 @@ import i18n from '@/i18n'
 import { getLogger } from '@/lib/utils'
 import { sessionStartupRecovery } from '@/packages/session-startup-recovery'
 import platform from '@/platform'
-import { router } from '@/router'
 import { initSessionPresentationBindings } from '@/session-bootstrap'
-import { initGoogleAnalyticsTracking } from '@/setup/ga_init'
-import { initJkTracking } from '@/setup/jk_analytics_init'
-import { initPlausibleTracking } from '@/setup/plausible_init'
-import { initSentry } from '@/setup/sentry_init'
 import { initSessionAttachmentRagMaintenance } from '@/setup/session_attachment_rag_maintenance'
 import { type SessionMigrationTrickleHandle, startSessionMigrationTrickle } from '@/setup/session-migration-trickle'
 import { currentSessionIdAtom } from '@/stores/atoms/sessionAtoms'
@@ -55,14 +50,6 @@ export async function initializeRenderer(): Promise<void> {
     migrationError = error
   }
 
-  // Migrate persisted consent before any settings-backed telemetry initializes.
-  await initSentry()
-  void initGoogleAnalyticsTracking()
-  void initPlausibleTracking((onResolved) => {
-    router.subscribe('onResolved', ({ hrefChanged }) => onResolved(hrefChanged))
-  })
-  void initJkTracking()
-
   if (migrationError !== undefined) {
     const migrationErrorContext = getMigrationErrorContext(migrationError)
     reportError(migrationError, {
@@ -76,6 +63,8 @@ export async function initializeRenderer(): Promise<void> {
 
   // Preserve the non-blocking timing of MCP startup.
   void import('@/setup/mcp_bootstrap')
+  if (platform.isDesktopLike) void import('@/packages/novel/runtime').then((mod) => mod.startNovelRuntime())
+  void import('@/setup/init_data').then((mod) => mod.removeUntouchedExampleSessions())
 }
 
 /** Hydrates the application graph and registers post-migration host bindings before React renders. */

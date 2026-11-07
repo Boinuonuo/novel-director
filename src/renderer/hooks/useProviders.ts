@@ -17,7 +17,11 @@ export const useProviders = () => {
   const licenseKey = useSettingsStore((state) => state.licenseKey)
   const providerSettingsMap = useSettingsStore((state) => state.providers)
 
-  const allProviderBaseInfos = useMemo(() => [...SystemProviders(), ...(customProviders || [])], [customProviders])
+  // Chatbox AI stays registered so an old conversation still resolves, but it is not offered.
+  const allProviderBaseInfos = useMemo(
+    () => [...SystemProviders().filter((p) => p.id !== ModelProviderEnum.ChatboxAI), ...(customProviders || [])],
+    [customProviders]
+  )
   const providers = useMemo(
     () =>
       allProviderBaseInfos

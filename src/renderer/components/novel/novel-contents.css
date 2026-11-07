@@ -1,0 +1,53 @@
+.novel-toc-card {
+  --novel-contents-accent: #2563eb;
+  margin: 0 10px 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--chatbox-border-primary);
+  border-radius: 12px;
+  background: var(--chatbox-background-primary);
+  color: var(--chatbox-tint-primary);
+}
+.novel-toc-toggle, .novel-toc-chapter, button.novel-toc-empty {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+}
+.novel-toc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.novel-toc-toggle > svg { color: var(--novel-contents-accent); }
+.novel-toc-count, .novel-toc-number {
+  color: var(--chatbox-tint-tertiary);
+  font: 10px ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.novel-toc-body { max-height: min(34vh, 320px); overflow-y: auto; scrollbar-width: thin; padding: 0 6px 6px; }
+.novel-toc-body ol { list-style: none; padding: 0; margin: 0; }
+.novel-toc-chapter { display: flex; align-items: baseline; gap: 10px; padding: 9px 8px; border-radius: 6px; }
+.novel-toc-title {
+  font: 13px/1.6 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'SimSun', serif;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.novel-toc-chapter:hover, .novel-toc-toggle:hover { background: var(--chatbox-background-secondary); }
+.novel-toc-chapter[aria-current='location'] {
+  background: var(--chatbox-background-secondary);
+  box-shadow: inset 2px 0 var(--novel-contents-accent);
+  color: var(--novel-contents-accent);
+}
+.novel-toc-card button:focus-visible { outline: 2px solid var(--novel-contents-accent); outline-offset: -2px; }
+.novel-toc-empty { margin: 0; padding: 8px; color: var(--chatbox-tint-tertiary); font-size: 12px; line-height: 1.7; }
+
+[data-mantine-color-scheme="dark"] .novel-toc-card { --novel-contents-accent: #c69bef; }

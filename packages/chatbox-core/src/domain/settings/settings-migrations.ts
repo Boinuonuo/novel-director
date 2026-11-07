@@ -1,8 +1,14 @@
 import deepmerge from 'deepmerge'
-import { createDefaultSettings, getDefaultDocumentParser, type SettingsHostDefaults } from './settings-defaults'
+import {
+  createDefaultSettings,
+  DEFAULT_SYSTEM_PROMPT,
+  getDefaultDocumentParser,
+  LEGACY_DEFAULT_SYSTEM_PROMPT,
+  type SettingsHostDefaults,
+} from './settings-defaults'
 import { type Settings, SettingsSchema } from './settings-schema'
 
-export const SETTINGS_PERSIST_VERSION = 8
+export const SETTINGS_PERSIST_VERSION = 12
 
 /** Compaction threshold persisted as the default by settings versions up to 7. */
 const VERSION_7_DEFAULT_COMPACTION_THRESHOLD = 0.6
@@ -92,6 +98,63 @@ export function migrateSettings(persisted: unknown, version: number, host: Setti
     Math.abs(settings.compactionThreshold - VERSION_7_DEFAULT_COMPACTION_THRESHOLD) < 1e-9
   ) {
     settings.compactionThreshold = createDefaultSettings().compactionThreshold
+  }
+
+  // Version 9: this fork has no Chatbox account, so the services behind one are replaced.
+  if (shouldRunMigration(8)) {
+    const extension = settings.extension as
+      | { documentParser?: { type?: string }; webSearch?: { provider?: string } }
+      | undefined
+    settings.allowReportingAndTracking = false
+    if (extension?.webSearch?.provider === 'build-in') extension.webSearch.provider = 'bing'
+    if (host.isDesktopLike && extension?.documentParser?.type === 'chatbox-ai') extension.documentParser.type = 'local'
+  }
+
+  // Version 10: Fetch and arXiv were hosted by Chatbox and are gone.
+  if (shouldRunMigration(9)) {
+    const mcp = settings.mcp as { enabledBuiltinServers?: unknown } | undefined
+    if (Array.isArray(mcp?.enabledBuiltinServers)) {
+      mcp.enabledBuiltinServers = mcp.enabledBuiltinServers.filter((id) => id !== 'fetch' && id !== 'arxiv')
+    }
+  }
+
+  // Version 12: the untouched stock prompt follows the new default.
+  if (shouldRunMigration(11) && settings.defaultPrompt === LEGACY_DEFAULT_SYSTEM_PROMPT) {
+    settings.defaultPrompt = DEFAULT_SYSTEM_PROMPT
+  }
+
+  // Version 11: forget Chatbox AI, its account and every selection that pointed at it.
+  if (shouldRunMigration(10)) {
+    const providers = settings.providers as Record<string, unknown> | undefined
+    if (providers) delete providers['chatbox-ai']
+    for (const key of [
+      'licenseKey',
+      'licenseDetail',
+      'licenseInstances',
+      'licensePlanName',
+      'hasExpiredLicense',
+      'licenseActivationMethod',
+      'memorizedManualLicenseKey',
+    ]) {
+      delete settings[key]
+    }
+    if (Array.isArray(settings.favoritedModels)) {
+      settings.favoritedModels = settings.favoritedModels.filter(
+        (favorite: { provider?: string }) => favorite?.provider !== 'chatbox-ai'
+      )
+    }
+    for (const key of Object.keys(settings)) {
+      const value = settings[key] as { provider?: unknown } | null | undefined
+      if (key.endsWith('Model') && value && typeof value === 'object' && value.provider === 'chatbox-ai') {
+        delete settings[key]
+      }
+    }
+    const skills = settings.skills as { enabledSkillNames?: unknown } | undefined
+    if (Array.isArray(skills?.enabledSkillNames)) {
+      skills.enabledSkillNames = skills.enabledSkillNames.filter(
+        (name) => name !== 'chatbox-product-info' && name !== 'vibedrop'
+      )
+    }
   }
 
   const extension = settings.extension as { documentParser?: { type?: string } } | undefined

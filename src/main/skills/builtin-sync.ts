@@ -228,10 +228,20 @@ function writeSnapshotSkill(
  * - 快照已被远端覆盖（origin='remote'）：不动，远端版本（基于后端权威）优先。
  * 幂等，可重复调用。
  */
+/** Earlier built-ins that sold or published through Chatbox. Old profiles still have copies. */
+const RETIRED_BUILTIN_SKILLS = ['chatbox-product-info', 'vibedrop']
+
 export function ensureBuiltinSeeded(): void {
   try {
     const manifest = readManifest()
     let changed = false
+    for (const name of RETIRED_BUILTIN_SKILLS) {
+      fs.rmSync(path.join(getBuiltinSkillsDir(), name), { recursive: true, force: true })
+      if (manifest.skills[name]) {
+        delete manifest.skills[name]
+        changed = true
+      }
+    }
     for (const seed of builtinSkills) {
       const name = seed.metadata.name
       const seedHash = hashSkillContent(seed.body)

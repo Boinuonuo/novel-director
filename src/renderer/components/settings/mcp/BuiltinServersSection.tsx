@@ -5,15 +5,14 @@ import MCPStatus from '@/components/mcp/MCPStatus'
 import { SettingRow, SettingsSection } from '@/components/settings/SettingsLayout'
 import { useMCPServerStatus, useToggleMCPServer } from '@/hooks/mcp'
 import { BUILTIN_MCP_SERVERS, type BuildinMCPServerConfig } from '@/packages/mcp/builtin'
-import { useAutoValidate } from '@/stores/premiumActions'
 import { useMcpSettings } from '@/stores/settingsStore'
 
 const ServerRow: FC<{
   config: BuildinMCPServerConfig
   enabled: boolean
   onEnabledChange: (id: string, checked: boolean) => void
-  accessible: boolean
 }> = (props) => {
+  const { t } = useTranslation()
   const status = useMCPServerStatus(props.config.id)
   return (
     <SettingRow
@@ -24,14 +23,13 @@ const ServerRow: FC<{
           {props.config.name}
         </div>
       }
-      description={props.config.description}
+      description={t(props.config.description)}
       control={
         <Switch
           size="md"
           aria-label={props.config.name}
           checked={props.enabled}
           onChange={(e) => props.onEnabledChange(props.config.id, e.currentTarget.checked)}
-          disabled={!props.accessible}
         />
       }
     />
@@ -41,20 +39,15 @@ const ServerRow: FC<{
 export const BuiltinServersSection: FC = () => {
   const { t } = useTranslation()
   const mcp = useMcpSettings()
-  const isPremium = useAutoValidate()
   const onEnabledChange = useToggleMCPServer()
   return (
-    <SettingsSection
-      title={`Chatbox ${t('Builtin MCP Servers')}`}
-      description={t('One-click MCP servers for Chatbox AI subscribers')}
-    >
+    <SettingsSection title={t('Builtin MCP Servers')} description={t('Free to use, with no key needed.')}>
       {BUILTIN_MCP_SERVERS.map((config) => (
         <ServerRow
           key={config.id}
           config={config}
           enabled={mcp.enabledBuiltinServers.includes(config.id)}
           onEnabledChange={onEnabledChange}
-          accessible={isPremium}
         />
       ))}
     </SettingsSection>

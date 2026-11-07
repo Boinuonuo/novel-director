@@ -28,7 +28,7 @@ export interface TranscriptNavigation {
 }
 
 /** Tabs of the conversation side panel: pinned tools first, then the built-in browser's pages. */
-export type SessionPanelTab = 'settings' | 'threads' | 'web'
+export type SessionPanelTab = 'settings' | 'threads' | 'novel' | 'web'
 
 export interface SessionPanelState {
   open: boolean
@@ -116,6 +116,8 @@ export const uiStore = createStore(
         widthFull: false, // Stored UI preference
         modelSelectorTab: 'all' as 'all' | 'favorite',
         showCopilotsInNewSession: false,
+        // Novel mode is this app's main use, so a new chat starts in it until the author says otherwise.
+        newChatNovelMode: true,
         sidebarWidth: null as number | null, // Custom sidebar width, null means use default
         collapsedSessionFolderIds: [] as string[],
         agentModeSmartSwitchingDefault: true,
@@ -371,6 +373,10 @@ export const uiStore = createStore(
           set({ newSessionWorkingDirectoriesDefault: directories })
         },
 
+        setNewChatNovelMode: (newChatNovelMode: boolean) => {
+          set({ newChatNovelMode })
+        },
+
         setShowCopilotsInNewSession: (showCopilotsInNewSession: boolean) => {
           set({ showCopilotsInNewSession })
         },
@@ -420,6 +426,7 @@ export const uiStore = createStore(
         widthFull: state.widthFull,
         modelSelectorTab: state.modelSelectorTab,
         showCopilotsInNewSession: state.showCopilotsInNewSession,
+        newChatNovelMode: state.newChatNovelMode,
         sidebarWidth: state.sidebarWidth,
         collapsedSessionFolderIds: state.collapsedSessionFolderIds,
         agentModeSmartSwitchingDefault: state.agentModeSmartSwitchingDefault,

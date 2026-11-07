@@ -791,69 +791,6 @@ describe('prepareAgentGenerationHarness', () => {
     expect(JSON.stringify(prepared.coreMessages)).not.toContain('SANDBOX_MODE')
   })
 
-  test('disables chatbox_cli while a resumed image task waits for its callback', async () => {
-    discoverSkillsMock.mockResolvedValue([
-      { name: 'chatbox-product-info', description: 'Operate Chatbox product features' },
-    ])
-    getSettingsMock.mockReturnValue({
-      skills: { enabledSkillNames: ['chatbox-product-info'] },
-    })
-    const messages: Message[] = [
-      {
-        id: 'user-1',
-        role: MessageRoleEnum.User,
-        contentParts: [{ type: 'text', text: 'Generate a red fox image.' }],
-      },
-      {
-        id: 'assistant-1',
-        role: MessageRoleEnum.Assistant,
-        contentParts: [
-          {
-            type: 'tool-call',
-            state: 'result',
-            toolCallId: 'tool-1',
-            toolName: 'chatbox_cli',
-            args: { argv: ['image', 'generate', '--prompt', 'red fox'] },
-            result: {
-              ok: true,
-              command: 'image generate',
-              accepted: true,
-              background: true,
-              recordId: 'record-1',
-              status: 'pending',
-              startedAt: 1_000,
-              wait: { mode: 'callback', managedBy: 'chatbox', modelShouldPoll: false, pollIntervalMs: 2_000 },
-            },
-          },
-        ],
-      },
-    ]
-
-    const prepared = await prepareAgentGenerationHarness({
-      session: createSession(),
-      settings: { provider: ModelProviderEnum.ChatboxAI, modelId: 'test-model' } as SessionSettings,
-      globalSettings: {} as Settings,
-      configs: { uuid: 'config-1' } as Config,
-      messages,
-      targetMsgIx: messages.length,
-      model: createMockModel(),
-      dependencies: {} as never,
-      webBrowsing: false,
-      agentModeValue: 'on',
-      agentModeLocked: true,
-      agentModeSupported: true,
-      signal: new AbortController().signal,
-      preserveLastPromptMessageToolCalls: true,
-      sandboxProviderFactory: () => sandboxProviderMock as unknown as SandboxProvider,
-      isPro: () => true,
-    })
-
-    expect(prepared.tools.chatbox_cli).toBeDefined()
-    expect(prepared.chatOptions.prepareStep).toBeDefined()
-    const stepSettings = await prepared.chatOptions.prepareStep?.({ steps: [] } as never)
-    expect(stepSettings?.activeTools).not.toContain('chatbox_cli')
-  })
-
   test('keeps a still-generating resumed message with its tool calls in the model context', async () => {
     const messages: Message[] = [
       {
@@ -1534,7 +1471,7 @@ describe('session prompt context snapshot', () => {
     expect(snapshot.workspaceDirectories).toEqual([])
 
     const serialized = JSON.stringify(prepared.coreMessages)
-    expect(serialized).toContain('You are Chatbox agent')
+    expect(serialized).toContain('You are the Novel Director agent')
     expect(serialized).toContain('## Soul')
     // Untouched template falls back to the default persona.
     expect(serialized).toContain('Be genuinely helpful, not performatively helpful')
@@ -1561,7 +1498,7 @@ describe('session prompt context snapshot', () => {
     const serialized = JSON.stringify(prepared.coreMessages)
     const soulIx = serialized.indexOf('## Soul')
     const overlayIx = serialized.indexOf('You are a pirate copilot.')
-    expect(serialized).toContain('You are Chatbox agent')
+    expect(serialized).toContain('You are the Novel Director agent')
     expect(soulIx).toBeGreaterThanOrEqual(0)
     expect(overlayIx).toBeGreaterThan(soulIx)
     expect(overlayIx).toBeLessThan(serialized.indexOf('## Runtime'))
@@ -1719,7 +1656,7 @@ describe('session prompt context snapshot', () => {
 
     const serialized = JSON.stringify(prepared.coreMessages)
     expect(serialized).toContain('You are a pirate copilot.')
-    expect(serialized).not.toContain('You are Chatbox agent')
+    expect(serialized).not.toContain('You are the Novel Director agent')
   })
 })
 
@@ -1786,7 +1723,7 @@ describe('chat mode memories', () => {
     expect(serialized).toContain('You are a pirate copilot.')
     expect(serialized).toContain('[m1] User prefers pnpm over npm')
     // No Soul/identity leaks into chat mode.
-    expect(serialized).not.toContain('You are Chatbox agent')
+    expect(serialized).not.toContain('You are the Novel Director agent')
     expect(serialized).not.toContain('Custom soul that must stay agent-only.')
     // Memory tools are registered, so the guidance references them.
     expect(prepared.tools.save_memory).toBeDefined()
@@ -2049,5 +1986,152 @@ describe('chat mode memories', () => {
     expect(serialized).not.toContain('Stale global fact')
 
     await storageMock.setItemNow('agent-memories', [])
+  })
+})
+
+describe('prepareAgentGenerationHarness long-form support', () => {
+  const history = {
+    firstMessageTimestamp: 123,
+    userMessageCount: 1,
+    hasAssistantMessage: false,
+    hasLegacyCommandHistory: false,
+    fileResourceKeys: [],
+    sandboxSeedAttachments: [],
+  }
+
+  function harnessOptions(
+    messages: Message[],
+    settings: Partial<SessionSettings>,
+    extra: Record<string, unknown> = {}
+  ): Parameters<typeof prepareAgentGenerationHarness>[0] {
+    return {
+      session: { id: 'session-1', name: 'Session', type: 'chat' },
+      settings: { provider: ModelProviderEnum.ChatboxAI, modelId: 'test-model', ...settings } as SessionSettings,
+      globalSettings: {} as Settings,
+      configs: { uuid: 'config-1' } as Config,
+      messages,
+      targetMsgIx: messages.length,
+      history,
+      model: createMockModel(),
+      dependencies: createModelDependencies(),
+      webBrowsing: false,
+      agentModeValue: 'off',
+      agentModeLocked: false,
+      agentModeSupported: true,
+      signal: new AbortController().signal,
+      ...extra,
+    }
+  }
+
+  const userMessage = (text: string, extra: Partial<Message> = {}): Message => ({
+    id: 'u1',
+    role: 'user',
+    timestamp: 1_000,
+    contentParts: [{ type: 'text', text }],
+    ...extra,
+  })
+
+  const wholeRequest = async (options: Parameters<typeof prepareAgentGenerationHarness>[0]) => {
+    const prepared = await prepareAgentGenerationHarness(options)
+    return JSON.stringify({
+      promptMsgs: prepared.promptMsgs,
+      coreMessages: prepared.coreMessages,
+      systemPrompt: prepared.systemPrompt,
+      tools: Object.keys(prepared.tools),
+      instructions: prepared.debug.instructions,
+    })
+  }
+
+  const frozenClock = async (run: () => Promise<void>) => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(2_000)
+    try {
+      await run()
+    } finally {
+      vi.useRealTimers()
+    }
+  }
+
+  const lore = {
+    lore: [
+      { id: 'frost', keys: ['霜牙'], content: '剑鞘内侧刻着奥瑟的名字。' },
+      { id: 'law', keys: [], constant: true, content: '魔法的代价是记忆。' },
+    ],
+  }
+
+  test('leaves ordinary sessions untouched and never reads the store for them', async () => {
+    await frozenClock(async () => {
+      const read = vi.fn()
+      const messages = [userMessage('你好')]
+      const vanilla = await wholeRequest(harnessOptions(messages, {}))
+      const withSource = await wholeRequest(harnessOptions(messages, {}, { novelContext: { read } }))
+      expect(read).not.toHaveBeenCalled()
+      expect(withSource).toBe(vanilla)
+    })
+  })
+
+  test('sends exactly the vanilla request while nothing has been recorded', async () => {
+    await frozenClock(async () => {
+      const messages = [userMessage('她拔出霜牙。')]
+      const vanilla = await wholeRequest(harnessOptions(messages, {}))
+      const noSource = await wholeRequest(harnessOptions(messages, { novelMode: true }))
+      const noRecords = await wholeRequest(
+        harnessOptions(messages, { novelMode: true }, { novelContext: { read: async () => undefined } })
+      )
+      expect(noSource).toBe(vanilla)
+      expect(noRecords).toBe(vanilla)
+    })
+  })
+
+  test('falls back to the vanilla request when the store fails', async () => {
+    await frozenClock(async () => {
+      const messages = [userMessage('她拔出霜牙。')]
+      const vanilla = await wholeRequest(harnessOptions(messages, {}))
+      const failing = await wholeRequest(
+        harnessOptions(messages, { novelMode: true }, { novelContext: { read: vi.fn().mockRejectedValue(new Error('db')) } })
+      )
+      expect(failing).toBe(vanilla)
+    })
+  })
+
+  test('adds lore to the request and keeps everything vanilla provides', async () => {
+    const buildTools = vi.spyOn(toolsBuilder, 'buildToolsForSession')
+    try {
+      const prepared = await prepareAgentGenerationHarness(
+        harnessOptions(
+          [userMessage('她拔出霜牙。', { files: [{ id: 'f', name: 'outline.txt', fileType: 'text/plain', storageKey: 'k-file' }] })],
+          { novelMode: true },
+          {
+            novelContext: { read: async () => lore },
+            attachmentResolver: { read: async () => 'OUTLINE-BODY-TEXT' },
+          }
+        )
+      )
+
+      const sent = JSON.stringify(prepared.coreMessages)
+      expect(sent).toContain('OUTLINE-BODY-TEXT')
+      expect(buildTools).toHaveBeenCalled()
+      expect(prepared.memoryToolContext.enabled).toBe(true)
+      expect(prepared.systemPrompt).toContain('魔法的代价是记忆')
+      expect(sent).toContain('剑鞘内侧刻着奥瑟的名字')
+      expect(sent.indexOf('剑鞘内侧刻着奥瑟的名字')).toBeLessThan(sent.indexOf('她拔出霜牙。'))
+    } finally {
+      buildTools.mockRestore()
+    }
+  })
+
+  test('does not change the mode the author chose', async () => {
+    const prepared = await prepareAgentGenerationHarness(
+      harnessOptions([userMessage('她拔出霜牙。')], { novelMode: true }, {
+        agentModeValue: 'on',
+        agentModeLocked: true,
+        novelContext: { read: async () => lore },
+        sandboxProviderFactory: () => sandboxProviderMock as unknown as SandboxProvider,
+        isPro: () => true,
+      })
+    )
+    expect(prepared.debug.effectiveAgentMode).toBe('on')
+    expect(prepared.systemPrompt).toContain('魔法的代价是记忆')
+    expect(JSON.stringify(prepared.coreMessages)).toContain('剑鞘内侧刻着奥瑟的名字')
   })
 })

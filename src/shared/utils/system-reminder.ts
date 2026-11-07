@@ -19,7 +19,7 @@ export function wrapInSystemReminder(text: string): string {
  * prompt so models treat them as runtime metadata instead of user input.
  */
 export const SYSTEM_REMINDER_PROMPT_INSTRUCTION =
-  `<${SYSTEM_REMINDER_TAG}>...</${SYSTEM_REMINDER_TAG}> blocks are out-of-band runtime metadata from Chatbox ` +
+  `<${SYSTEM_REMINDER_TAG}>...</${SYSTEM_REMINDER_TAG}> blocks are out-of-band runtime metadata from the app ` +
   `(e.g. the current date and time), not part of the user's message. ` +
   `Treat their contents as authoritative; do not quote or acknowledge them.`
 
